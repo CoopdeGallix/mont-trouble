@@ -122,6 +122,23 @@ def main():
             page.uncheck("#paper-toggle")
             print("ok   paper entry")
 
+            # correct a wrong bib: original time kept, original voided
+            page.locator("#recent button[data-fix]").first.click()
+            expect(page.locator("#fix-time")).to_have_value("10:15:30")
+            page.fill("#fix-bib", "6")
+            page.click("#fix button.primary")
+            top = page.locator("#recent li").first
+            expect(top).to_contain_text("10:15:30")
+            expect(top.locator("b")).to_have_text("6")
+            expect(page.locator("#recent li.voided", has_text="Maude Lareau")).to_have_count(1)
+            page.wait_for_function("document.querySelector('#sync').textContent.includes('à jour')")
+            time.sleep(0.5)
+            evs = server_events()
+            fixed = [e for e in evs if e.get("bib") == 6 and e["type"] == "A"]
+            assert len(fixed) == 1, fixed
+            assert any(e["type"] == "VOID" and e["ref"] == next(x["id"] for x in evs if x.get("bib") == 5) for e in evs)
+            print("ok   correction keeps time, voids original")
+
             # late registration: next bib prefilled, name shows up right away
             page.click("#open-signup")
             expect(page.locator("#su-bib")).to_have_value("84")

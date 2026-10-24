@@ -130,6 +130,22 @@
   </form>
 </dialog>
 
+<dialog id="fix">
+  <form id="fix-form">
+    <strong>Corriger la saisie</strong>
+    <label for="fix-bib">Dossard</label>
+    <input id="fix-bib" required inputmode="numeric" pattern="\d{1,4}" autocomplete="off">
+    <label for="fix-type">Poste</label>
+    <select id="fix-type" style="width:100%;font:inherit;font-size:18px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">
+      <option value="D">Départ</option><option value="M">Sommet</option><option value="A">Arrivée</option><option value="DNF">DNF</option>
+    </select>
+    <label for="fix-time">Heure</label>
+    <input id="fix-time" required inputmode="numeric" placeholder="HH:MM:SS" autocomplete="off">
+    <p class="hint" id="fix-who">L'heure d'origine est gardée sauf si tu la changes.</p>
+    <div class="row"><button type="button" id="fix-cancel">Fermer</button><button class="primary">Corriger</button></div>
+  </form>
+</dialog>
+
 <dialog id="signup">
   <form id="signup-form">
     <strong>Inscription</strong>
@@ -273,6 +289,45 @@ function voidEvent(id) {
   sync();
 }
 
+// A correction voids the original and records a fixed copy, keeping its time
+// unless changed, so nobody has to re-enter it from paper.
+let fixing = null;
+
+function openFix(id) {
+  fixing = mine.find((e) => e.id === id);
+  if (!fixing) return;
+  $('fix-bib').value = fixing.bib;
+  $('fix-type').value = fixing.type;
+  $('fix-time').value = fmtClock(fixing.ts);
+  $('fix').showModal();
+  $('fix-bib').select();
+}
+
+$('fix-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const ts = parseClock($('fix-time').value);
+  if (ts == null) return toast('Heure invalide (HH:MM:SS)', true);
+  const b = Number($('fix-bib').value);
+  const type = $('fix-type').value;
+  // keep the original milliseconds when the shown time was not edited
+  const newTs = fmtClock(ts) === fmtClock(fixing.ts) ? fixing.ts : ts;
+  if (b === fixing.bib && type === fixing.type && newTs === fixing.ts) return $('fix').close();
+  const p = participantsByBib().get(b);
+  if (!p && server.participants.length && !confirm(`Dossard ${b} inconnu. Corriger quand même ?`)) return;
+  const voidEv = { id: newId(), type: 'VOID', ref: fixing.id, bib: fixing.bib, ts: Date.now(), device: settings.device, source: 'fix' };
+  const fixed = { id: newId(), bib: b, type, ts: newTs, device: settings.device, source: 'fix', note: `corrige ${fixing.id}` };
+  const warnings = checkNewEvent(runnerFor(b, [voidEv]), p, type, newTs);
+  mine.push({ ...voidEv, synced: false }, { ...fixed, synced: false, warnings });
+  outbox.push(voidEv, fixed);
+  persist();
+  $('fix').close();
+  toast(`Corrigé : ${b} · ${fmtClock(newTs)}`);
+  renderRecent();
+  renderEntry();
+  sync();
+});
+$('fix-cancel').addEventListener('click', () => $('fix').close());
+
 function persist() {
   if (mine.length > 3000) mine = mine.slice(-3000);
   store.set('outbox', outbox);
@@ -353,7 +408,7 @@ function renderRecent() {
       <span>${fmtClock(e.ts)}</span>
       <span class="tag ${e.type}">${{ M: 'S' }[e.type] || e.type}</span>
       <span class="name"><b>${e.bib}</b> ${p ? esc(p.name) : ''}${note ? `<small>⚠ ${esc(note)}</small>` : ''}</span>
-      <span class="st">${e.synced ? '✓' : '⟳'}${e.source === 'paper' ? ' 📝' : ''}${voided.has(e.id) ? '' : `<br><button data-void="${e.id}">annuler</button>`}</span>`;
+      <span class="st">${e.synced ? '✓' : '⟳'}${e.source === 'paper' ? ' 📝' : ''}${e.source === 'fix' ? ' ✏️' : ''}${voided.has(e.id) ? '' : `<br><button data-fix="${e.id}" style="color:var(--fg)">corriger</button> <button data-void="${e.id}">annuler</button>`}</span>`;
     list.appendChild(li);
   }
 }
@@ -430,6 +485,8 @@ $('keypad').addEventListener('click', (e) => {
   if (b) press(b.dataset.k || b.textContent.trim());
 });
 $('recent').addEventListener('click', (e) => {
+  const fix = e.target.closest('button[data-fix]');
+  if (fix) return openFix(fix.dataset.fix);
   const b = e.target.closest('button[data-void]');
   if (b) voidEvent(b.dataset.void);
 });
@@ -440,7 +497,7 @@ $('paper-toggle').addEventListener('change', (e) => {
 });
 $('paper-time').addEventListener('input', renderEntry);
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || $('settings').open || $('signup').open) return;
+  if (e.target.tagName === 'INPUT' || $('settings').open || $('signup').open || $('fix').open) return;
   if (/^\d$/.test(e.key)) press(e.key);
   else if (e.key === 'Backspace') press('del');
   else if (e.key === 'Enter') press('ok');
