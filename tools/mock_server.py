@@ -45,6 +45,19 @@ class Store:
             self.path.write_text(json.dumps(self.events))
         return {"ok": True, "accepted": accepted, "duplicates": duplicates, "rejected": rejected}
 
+    def add_participant(self, p) -> dict:
+        if not isinstance(p, dict) or not str(p.get("bib", "")).isdigit():
+            return {"error": "Dossard invalide"}
+        name = str(p.get("name", "")).strip()[:80]
+        if not name:
+            return {"error": "Nom requis"}
+        with self.lock:
+            taken = next((x for x in self.participants if x["bib"] == int(p["bib"])), None)
+            if taken:
+                return {"error": f"Dossard {p['bib']} déjà pris : {taken['name']}"}
+            self.participants.append({"bib": int(p["bib"]), "name": name, "sex": str(p.get("sex", "")).strip()})
+        return {"ok": True}
+
 
 def validate(ev) -> str | None:
     if not isinstance(ev, dict) or not isinstance(ev.get("id"), str) or not ev["id"]:
@@ -94,6 +107,8 @@ class Handler(SimpleHTTPRequestHandler):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         if body.get("pin") != self.pin:
             return self._json({"error": "NIP invalide"})
+        if body.get("action") == "participant":
+            return self._json(self.store.add_participant(body.get("participant")))
         return self._json(self.store.add(body.get("events", [])))
 
     def end_headers(self):

@@ -68,6 +68,7 @@
   dialog { border: 0; border-radius: 14px; padding: 18px; width: min(92vw, 420px); background: var(--card); color: var(--fg); }
   dialog::backdrop { background: rgba(0,0,0,.5); }
   dialog label { display: block; margin: 10px 0 4px; font-weight: 600; }
+  .row button:disabled { opacity: .5; }
   dialog input { width: 100%; font: inherit; font-size: 18px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
   dialog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
   dialog .row button { padding: 10px 16px; border-radius: 8px; background: var(--line); }
@@ -79,6 +80,7 @@
 <header>
   <h1>Chrono MT <small id="device-label" style="color:var(--muted);font-weight:400"></small></h1>
   <span class="pill" id="sync">…</span>
+  <button class="icon-btn" id="open-signup" aria-label="Inscription">➕</button>
   <button class="icon-btn" id="open-settings" aria-label="Réglages">⚙️</button>
 </header>
 
@@ -125,9 +127,25 @@
   </form>
 </dialog>
 
+<dialog id="signup">
+  <form id="signup-form">
+    <strong>Inscription</strong>
+    <label for="su-bib">Dossard</label>
+    <input id="su-bib" required inputmode="numeric" pattern="\d{1,4}" autocomplete="off">
+    <label for="su-name">Nom complet</label>
+    <input id="su-name" required maxlength="80" autocomplete="off">
+    <label for="su-sex">Sexe</label>
+    <select id="su-sex" style="width:100%;font:inherit;font-size:18px;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg)">
+      <option value="">—</option><option>F</option><option>H</option><option>X</option>
+    </select>
+    <p class="hint" id="su-msg">Nécessite du réseau.</p>
+    <div class="row"><button type="button" id="su-cancel">Fermer</button><button class="primary" id="su-save">Inscrire</button></div>
+  </form>
+</dialog>
+
 <script type="module">
 import { RACE, STATUS_LABEL, computeRunner, groupByBib, checkNewEvent, fmtClock, fmtDuration, parseClock } from './js/race.js';
-import { fetchData, postEvents } from './js/api.js';
+import { fetchData, postEvents, postParticipant } from './js/api.js';
 
 const $ = (id) => document.getElementById(id);
 const store = {
@@ -354,6 +372,42 @@ $('settings').addEventListener('close', () => {
   sync();
 });
 
+// --- late registration -------------------------------------------------
+
+function openSignup() {
+  if (!settings.pin) return openSettings();
+  // Suggest the smallest free bib; a typo like 999 must not push it to 1000.
+  const taken = new Set(server.participants.map((p) => Number(p.bib)));
+  let next = 1;
+  while (taken.has(next)) next++;
+  $('su-bib').value = next;
+  $('su-name').value = '';
+  $('su-sex').value = '';
+  $('su-msg').textContent = 'Nécessite du réseau.';
+  $('su-msg').style.color = '';
+  $('signup').showModal();
+  $('su-name').focus();
+}
+
+$('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const p = { bib: Number($('su-bib').value), name: $('su-name').value.trim(), sex: $('su-sex').value };
+  $('su-save').disabled = true;
+  try {
+    await postParticipant(settings.pin, p);
+    $('signup').close();
+    toast(`Inscrit : ${p.bib} ${p.name}`);
+    await refresh();
+  } catch (err) {
+    $('su-msg').textContent = err.message === 'Failed to fetch' ? 'Pas de réseau, réessaie.' : err.message;
+    $('su-msg').style.color = 'var(--dnf)';
+  } finally {
+    $('su-save').disabled = false;
+  }
+});
+$('su-cancel').addEventListener('click', () => $('signup').close());
+$('open-signup').addEventListener('click', openSignup);
+
 let toastTimer;
 function toast(msg, bad = false) {
   const t = $('toast');
@@ -383,7 +437,7 @@ $('paper-toggle').addEventListener('change', (e) => {
 });
 $('paper-time').addEventListener('input', renderEntry);
 document.addEventListener('keydown', (e) => {
-  if (e.target.tagName === 'INPUT' || $('settings').open) return;
+  if (e.target.tagName === 'INPUT' || $('settings').open || $('signup').open) return;
   if (/^\d$/.test(e.key)) press(e.key);
   else if (e.key === 'Backspace') press('del');
   else if (e.key === 'Enter') press('ok');

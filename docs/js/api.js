@@ -29,3 +29,16 @@ export async function postEvents(pin, events) {
   if (data.error) throw new Error(data.error);
   return data; // { ok, accepted: [ids], duplicates: [ids] }
 }
+
+// Late registration. Needs the network (not queued like timing events).
+export async function postParticipant(pin, participant) {
+  const res = await fetch(endpoint(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify({ action: 'participant', pin, participant }),
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}

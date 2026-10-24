@@ -42,6 +42,7 @@ function doPost(e) {
     return json({ error: 'invalid JSON' });
   }
   if (body.pin !== PIN) return json({ error: 'NIP invalide' });
+  if (body.action === 'participant') return json(addParticipant(body.participant));
   if (body.action !== 'events' || !Array.isArray(body.events)) return json({ error: 'unknown action' });
 
   const lock = LockService.getScriptLock();
@@ -88,6 +89,26 @@ function doPost(e) {
       CacheService.getScriptCache().remove('data:n');
     }
     return json({ ok: true, accepted, duplicates, rejected });
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Late registration: append to the participants tab, refusing a bib already taken.
+function addParticipant(p) {
+  if (!p || !/^\d{1,4}$/.test(String(p.bib))) return { error: 'Dossard invalide' };
+  const name = String(p.name || '').trim().slice(0, 80);
+  if (!name) return { error: 'Nom requis' };
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(20000)) return { error: 'busy, retry' };
+  try {
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('participants');
+    const rows = sheet.getDataRange().getValues().slice(1);
+    const taken = rows.find((r) => r[0] !== '' && Number(r[0]) === Number(p.bib));
+    if (taken) return { error: 'Dossard ' + p.bib + ' déjà pris : ' + taken[1] };
+    sheet.appendRow([Number(p.bib), name, String(p.sex || '').trim().slice(0, 10)]);
+    CacheService.getScriptCache().remove('data:n');
+    return { ok: true };
   } finally {
     lock.releaseLock();
   }

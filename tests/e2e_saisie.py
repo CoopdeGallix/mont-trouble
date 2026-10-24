@@ -110,6 +110,35 @@ def main():
             expect(page.locator("#recent li").first).to_contain_text("10:15:30")
             page.uncheck("#paper-toggle")
             print("ok   paper entry")
+
+            # late registration: next bib prefilled, name shows up right away
+            page.click("#open-signup")
+            expect(page.locator("#su-bib")).to_have_value("84")
+            page.fill("#su-name", "Nouvelle Coureuse")
+            page.select_option("#su-sex", "F")
+            page.click("#su-save")
+            expect(page.locator("#signup")).not_to_be_visible()
+            key("8", "4")
+            expect(page.locator("#who")).to_contain_text("Nouvelle Coureuse")
+            key("del", "del")
+            print("ok   late registration")
+
+            # bib already taken is refused and the dialog stays open
+            page.click("#open-signup")
+            page.fill("#su-bib", "1")
+            page.fill("#su-name", "Doublon")
+            page.click("#su-save")
+            expect(page.locator("#su-msg")).to_contain_text("déjà pris")
+            page.click("#su-cancel")
+            print("ok   duplicate bib refused")
+
+            # times entered before registering bib 999 attach to the new name
+            page.click("#open-signup")
+            page.fill("#su-bib", "999")
+            page.fill("#su-name", "Inscrit Tardif")
+            page.click("#su-save")
+            expect(page.locator("#recent li", has_text="999")).to_contain_text("Inscrit Tardif")
+            print("ok   earlier times attach to late registrant")
             page.screenshot(path=str(shots / "saisie-entries.png"), full_page=True)
 
             # the app shell loads with no network once cached by the service worker
