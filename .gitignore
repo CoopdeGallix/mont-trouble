@@ -1,0 +1,6 @@
+participants.csv
+*.xlsx
+tools/.mock-events.json
+.venv/
+__pycache__/
+screenshots/

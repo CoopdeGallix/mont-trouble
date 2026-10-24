@@ -1,0 +1,10 @@
+{
+  "name": "Chrono Mont Trouble",
+  "short_name": "Chrono MT",
+  "start_url": "saisie.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1f2937",
+  "theme_color": "#1f2937",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

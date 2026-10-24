@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#1f2937">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.svg">
+<title>Chrono MT</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb;
+    --dep: #2563eb; --arr: #16a34a; --dnf: #dc2626; --warn: #b45309; --warn-bg: #fef3c7;
+    --mode: var(--arr);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --warn: #fbbf24; --warn-bg: #3a2a07; }
+  }
+  body[data-mode="D"] { --mode: var(--dep); }
+  body[data-mode="A"] { --mode: var(--arr); }
+  body[data-mode="DNF"] { --mode: var(--dnf); }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.3 system-ui, -apple-system, sans-serif; }
+  body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom); max-width: 520px; margin: 0 auto; }
+  header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; }
+  header h1 { font-size: 16px; margin: 0; flex: 1; }
+  .pill { font-size: 13px; padding: 4px 10px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); white-space: nowrap; }
+  .pill.ok { color: var(--arr); } .pill.pending { color: var(--warn); } .pill.err { color: var(--dnf); }
+  button { font: inherit; color: inherit; border: 0; cursor: pointer; }
+  .icon-btn { background: none; font-size: 20px; padding: 4px 6px; }
+  .modes { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 6px; padding: 0 12px; }
+  .modes button { padding: 12px 4px; border-radius: 10px; font-weight: 700; background: var(--card); border: 2px solid var(--line); }
+  .modes button[data-m="D"].on { background: var(--dep); border-color: var(--dep); color: #fff; }
+  .modes button[data-m="A"].on { background: var(--arr); border-color: var(--arr); color: #fff; }
+  .modes button[data-m="DNF"].on { background: var(--dnf); border-color: var(--dnf); color: #fff; }
+  .entry { margin: 10px 12px; padding: 10px 12px; background: var(--card); border-radius: 12px; border: 3px solid var(--mode); }
+  .entry-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+  .bib { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; min-height: 52px; letter-spacing: 1px; }
+  .bib:empty::before { content: 'Dossard'; color: var(--muted); font-weight: 400; font-size: 28px; }
+  .captured { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 15px; text-align: right; }
+  .who { font-size: 18px; font-weight: 600; min-height: 23px; }
+  .who small { font-weight: 400; color: var(--muted); }
+  .warns { margin: 6px 0 0; padding: 0; list-style: none; }
+  .warns li { background: var(--warn-bg); color: var(--warn); padding: 4px 8px; border-radius: 6px; margin-top: 4px; font-size: 14px; }
+  .paper { display: none; margin-top: 8px; gap: 8px; align-items: center; }
+  body.paper-on .paper { display: flex; }
+  .paper input { font: inherit; font-size: 20px; padding: 6px 8px; width: 9.5ch; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); font-variant-numeric: tabular-nums; }
+  .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px; }
+  .keypad button { font-size: 28px; font-weight: 600; padding: 14px 0; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
+  .keypad button:active { transform: scale(0.97); background: var(--line); }
+  .keypad .ok { background: var(--mode); color: #fff; border-color: var(--mode); }
+  .toast { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); padding: 10px 16px; border-radius: 10px; background: var(--fg); color: var(--bg); font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; max-width: 92vw; }
+  .toast.show { opacity: 1; }
+  .toast.bad { background: var(--dnf); color: #fff; }
+  h2 { font-size: 14px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 16px 12px 6px; display: flex; justify-content: space-between; align-items: center; }
+  h2 label { text-transform: none; letter-spacing: 0; font-size: 14px; color: var(--fg); display: flex; gap: 6px; align-items: center; }
+  .recent { list-style: none; margin: 0 12px 24px; padding: 0; }
+  .recent li { display: grid; grid-template-columns: auto auto 1fr auto; gap: 8px; align-items: center; padding: 8px 10px; background: var(--card); border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  .recent li:first-child { border-radius: 10px 10px 0 0; } .recent li:last-child { border-radius: 0 0 10px 10px; border-bottom: 0; }
+  .recent li.voided { opacity: .45; text-decoration: line-through; }
+  .tag { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 5px; color: #fff; }
+  .tag.D { background: var(--dep); } .tag.A { background: var(--arr); } .tag.DNF { background: var(--dnf); }
+  .recent .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recent .name small { display: block; color: var(--warn); white-space: normal; }
+  .recent .st { font-size: 13px; color: var(--muted); text-align: right; }
+  .recent button { background: none; color: var(--dnf); font-size: 13px; padding: 2px 0 0; text-decoration: underline; }
+  dialog { border: 0; border-radius: 14px; padding: 18px; width: min(92vw, 420px); background: var(--card); color: var(--fg); }
+  dialog::backdrop { background: rgba(0,0,0,.5); }
+  dialog label { display: block; margin: 10px 0 4px; font-weight: 600; }
+  dialog input { width: 100%; font: inherit; font-size: 18px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+  dialog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+  dialog .row button { padding: 10px 16px; border-radius: 8px; background: var(--line); }
+  dialog .row button.primary { background: var(--arr); color: #fff; }
+  .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
+</style>
+</head>
+<body data-mode="A">
+<header>
+  <h1>Chrono MT <small id="device-label" style="color:var(--muted);font-weight:400"></small></h1>
+  <span class="pill" id="sync">…</span>
+  <button class="icon-btn" id="open-settings" aria-label="Réglages">⚙️</button>
+</header>
+
+<div class="modes" role="tablist">
+  <button data-m="D">DÉPART</button>
+  <button data-m="A" class="on">ARRIVÉE</button>
+  <button data-m="DNF">ABANDON</button>
+</div>
+
+<section class="entry">
+  <div class="entry-top">
+    <div class="bib" id="bib"></div>
+    <div class="captured" id="captured"></div>
+  </div>
+  <div class="who" id="who"></div>
+  <ul class="warns" id="warns"></ul>
+  <div class="paper">
+    <span>Heure papier</span>
+    <input id="paper-time" inputmode="numeric" placeholder="HH:MM:SS" autocomplete="off">
+  </div>
+</section>
+
+<div class="keypad" id="keypad">
+  <button>1</button><button>2</button><button>3</button>
+  <button>4</button><button>5</button><button>6</button>
+  <button>7</button><button>8</button><button>9</button>
+  <button data-k="del" aria-label="Effacer">⌫</button><button>0</button><button data-k="ok" class="ok">OK</button>
+</div>
+
+<h2>Mes saisies <label><input type="checkbox" id="paper-toggle"> Saisie papier</label></h2>
+<ul class="recent" id="recent"></ul>
+
+<div class="toast" id="toast"></div>
+
+<dialog id="settings">
+  <form method="dialog" id="settings-form">
+    <strong>Réglages</strong>
+    <label for="set-device">Ton nom (ou poste)</label>
+    <input id="set-device" required maxlength="30" placeholder="ex. Samuel arrivées">
+    <label for="set-pin">NIP</label>
+    <input id="set-pin" required inputmode="numeric" autocomplete="off">
+    <p class="hint">L'heure est prise au <b>premier chiffre</b> tapé. Les saisies sont gardées sur le téléphone et envoyées dès qu'il y a du réseau.</p>
+    <div class="row"><button value="cancel" formnovalidate>Fermer</button><button value="ok" class="primary">Enregistrer</button></div>
+  </form>
+</dialog>
+
+<script type="module">
+import { RACE, STATUS_LABEL, computeRunner, groupByBib, checkNewEvent, fmtClock, fmtDuration, parseClock } from './js/race.js';
+import { fetchData, postEvents } from './js/api.js';
+
+const $ = (id) => document.getElementById(id);
+const store = {
+  get(key, fallback) {
+    try { const v = localStorage.getItem('cmt.' + key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+  },
+  set(key, value) {
+    try { localStorage.setItem('cmt.' + key, JSON.stringify(value)); } catch {}
+  },
+};
+
+let settings = store.get('settings', { pin: '', device: '' });
+let mode = store.get('mode', 'A');
+let outbox = store.get('outbox', []);   // events not yet confirmed by the server
+let mine = store.get('mine', []);       // everything entered on this phone (+ sync state)
+let server = store.get('server', { participants: [], events: [], serverTime: 0 });
+let bib = '';
+let capturedAt = null;
+let syncError = null;
+let syncing = false;
+
+const participantsByBib = () => new Map(server.participants.map((p) => [Number(p.bib), p]));
+
+function allEvents() {
+  const ids = new Set(server.events.map((e) => e.id));
+  return server.events.concat(mine.filter((e) => !ids.has(e.id)));
+}
+
+function runnerFor(b, extra = []) {
+  const byBib = groupByBib(allEvents().concat(extra));
+  return computeRunner(byBib.get(b) || []);
+}
+
+function newId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+// --- entry -------------------------------------------------------------
+
+function setMode(m) {
+  mode = m;
+  store.set('mode', m);
+  document.body.dataset.mode = m;
+  document.querySelectorAll('.modes button').forEach((b) => b.classList.toggle('on', b.dataset.m === m));
+  renderEntry();
+}
+
+function paperOn() { return document.body.classList.contains('paper-on'); }
+
+function entryTime() {
+  if (paperOn()) return parseClock($('paper-time').value);
+  return capturedAt;
+}
+
+function press(k) {
+  if (k === 'del') {
+    bib = bib.slice(0, -1);
+    if (!bib) capturedAt = null;
+  } else if (k === 'ok') {
+    return submit();
+  } else if (bib.length < 4) {
+    if (!bib) capturedAt = Date.now();
+    bib += k;
+  }
+  renderEntry();
+}
+
+function renderEntry() {
+  $('bib').textContent = bib;
+  const ts = entryTime();
+  $('captured').innerHTML = paperOn() ? 'papier' : capturedAt ? `heure<br><b>${fmtClock(capturedAt)}</b>` : '';
+  const warns = $('warns');
+  warns.innerHTML = '';
+  if (!bib) { $('who').textContent = ''; return; }
+  const b = Number(bib);
+  const p = participantsByBib().get(b);
+  const r = runnerFor(b);
+  $('who').innerHTML = p
+    ? `${esc(p.name)} <small>· ${r.loops} boucle${r.loops > 1 ? 's' : ''} · ${STATUS_LABEL[r.status]}${r.open && !r.open.virtual ? ' depuis ' + fmtClock(r.open.ts) : ''}</small>`
+    : '<small>Dossard inconnu</small>';
+  for (const w of checkNewEvent(r, p, mode, ts ?? Date.now())) {
+    const li = document.createElement('li');
+    li.textContent = w;
+    warns.appendChild(li);
+  }
+}
+
+function submit() {
+  if (!bib) return;
+  if (!settings.pin) return openSettings();
+  const ts = entryTime();
+  if (ts == null) return toast('Heure papier invalide (HH:MM:SS)', true);
+  const b = Number(bib);
+  const p = participantsByBib().get(b);
+  if (!p && server.participants.length && !confirm(`Dossard ${b} inconnu. Enregistrer quand même ?`)) return;
+  if (mode === 'DNF' && !confirm(`Marquer ${p ? p.name : 'dossard ' + b} en ABANDON ?`)) return;
+  const warnings = checkNewEvent(runnerFor(b), p, mode, ts);
+  const ev = { id: newId(), bib: b, type: mode, ts, device: settings.device, source: paperOn() ? 'paper' : 'app' };
+  mine.push({ ...ev, synced: false, warnings });
+  outbox.push(ev);
+  persist();
+  const label = { D: 'Départ', A: 'Arrivée', DNF: 'Abandon' }[mode];
+  toast(`${label} ${b} · ${fmtClock(ts)}${warnings.length ? ' ⚠' : ''}`, warnings.length > 0);
+  if (navigator.vibrate) navigator.vibrate(warnings.length ? [60, 60, 60] : 40);
+  bib = '';
+  capturedAt = null;
+  if (paperOn()) $('paper-time').value = '';
+  renderEntry();
+  renderRecent();
+  sync();
+}
+
+function voidEvent(id) {
+  const target = mine.find((e) => e.id === id);
+  if (!target || !confirm(`Annuler ${target.type} ${target.bib} de ${fmtClock(target.ts)} ?`)) return;
+  const ev = { id: newId(), type: 'VOID', ref: id, bib: target.bib, ts: Date.now(), device: settings.device, source: 'app' };
+  mine.push({ ...ev, synced: false });
+  outbox.push(ev);
+  persist();
+  renderRecent();
+  renderEntry();
+  sync();
+}
+
+function persist() {
+  if (mine.length > 3000) mine = mine.slice(-3000);
+  store.set('outbox', outbox);
+  store.set('mine', mine);
+}
+
+// --- sync --------------------------------------------------------------
+
+async function sync() {
+  if (syncing || !outbox.length || !settings.pin) return renderSync();
+  syncing = true;
+  try {
+    const batch = outbox.slice(0, 50);
+    const res = await postEvents(settings.pin, batch);
+    const done = new Set([...res.accepted, ...res.duplicates, ...(res.rejected || []).map((r) => r.id)]);
+    outbox = outbox.filter((e) => !done.has(e.id));
+    for (const e of mine) if (done.has(e.id)) e.synced = true;
+    for (const r of res.rejected || []) {
+      const e = mine.find((m) => m.id === r.id);
+      if (e) e.error = r.error;
+    }
+    persist();
+    syncError = null;
+    renderRecent();
+    if (outbox.length) setTimeout(sync, 200);
+    else refresh();
+  } catch (err) {
+    syncError = err.message;
+    if (/NIP/.test(err.message)) toast('NIP invalide : vérifie les réglages', true);
+  } finally {
+    syncing = false;
+    renderSync();
+  }
+}
+
+async function refresh() {
+  try {
+    server = await fetchData();
+    store.set('server', server);
+    if (!outbox.length) syncError = null;
+    renderEntry();
+    renderRecent();
+  } catch (err) {
+    if (!outbox.length) syncError = err.message;
+  }
+  renderSync();
+}
+
+function renderSync() {
+  const el = $('sync');
+  if (outbox.length) {
+    el.className = 'pill ' + (syncError ? 'err' : 'pending');
+    el.textContent = `${syncError ? '⚠ hors ligne' : '⟳'} ${outbox.length} en attente`;
+  } else if (syncError) {
+    el.className = 'pill err';
+    el.textContent = '⚠ hors ligne';
+  } else {
+    el.className = 'pill ok';
+    el.textContent = '✓ à jour';
+  }
+}
+
+// --- recent list -------------------------------------------------------
+
+function renderRecent() {
+  const voided = new Set(allEvents().filter((e) => e.type === 'VOID').map((e) => e.ref));
+  const people = participantsByBib();
+  const list = $('recent');
+  list.innerHTML = '';
+  const rows = mine.filter((e) => e.type !== 'VOID').slice(-30).reverse();
+  if (!rows.length) list.innerHTML = '<li style="grid-template-columns:1fr;color:var(--muted)">Aucune saisie</li>';
+  for (const e of rows) {
+    const li = document.createElement('li');
+    if (voided.has(e.id)) li.className = 'voided';
+    const p = people.get(Number(e.bib));
+    const note = e.error ? `Refusé : ${e.error}` : (e.warnings || []).join(' · ');
+    li.innerHTML = `
+      <span>${fmtClock(e.ts)}</span>
+      <span class="tag ${e.type}">${e.type === 'DNF' ? 'AB' : e.type}</span>
+      <span class="name"><b>${e.bib}</b> ${p ? esc(p.name) : ''}${note ? `<small>⚠ ${esc(note)}</small>` : ''}</span>
+      <span class="st">${e.synced ? '✓' : '⟳'}${e.source === 'paper' ? ' 📝' : ''}${voided.has(e.id) ? '' : `<br><button data-void="${e.id}">annuler</button>`}</span>`;
+    list.appendChild(li);
+  }
+}
+
+// --- settings / misc ---------------------------------------------------
+
+function openSettings() {
+  $('set-device').value = settings.device;
+  $('set-pin').value = settings.pin;
+  $('settings').showModal();
+}
+
+$('settings').addEventListener('close', () => {
+  if ($('settings').returnValue !== 'ok') return;
+  settings = { device: $('set-device').value.trim(), pin: $('set-pin').value.trim() };
+  store.set('settings', settings);
+  $('device-label').textContent = settings.device ? '· ' + settings.device : '';
+  syncError = null;
+  sync();
+});
+
+let toastTimer;
+function toast(msg, bad = false) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (bad ? ' bad' : '');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => (t.className = 'toast'), 2200);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+document.querySelectorAll('.modes button').forEach((b) => b.addEventListener('click', () => setMode(b.dataset.m)));
+$('keypad').addEventListener('click', (e) => {
+  const b = e.target.closest('button');
+  if (b) press(b.dataset.k || b.textContent.trim());
+});
+$('recent').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-void]');
+  if (b) voidEvent(b.dataset.void);
+});
+$('open-settings').addEventListener('click', openSettings);
+$('paper-toggle').addEventListener('change', (e) => {
+  document.body.classList.toggle('paper-on', e.target.checked);
+  renderEntry();
+});
+$('paper-time').addEventListener('input', renderEntry);
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || $('settings').open) return;
+  if (/^\d$/.test(e.key)) press(e.key);
+  else if (e.key === 'Backspace') press('del');
+  else if (e.key === 'Enter') press('ok');
+});
+window.addEventListener('online', () => { syncError = null; sync(); refresh(); });
+
+setMode(mode);
+$('device-label').textContent = settings.device ? '· ' + settings.device : '';
+renderRecent();
+renderSync();
+if (!settings.pin || !settings.device) openSettings();
+refresh().then(sync);
+setInterval(sync, 5000);
+setInterval(refresh, 20000);
+setInterval(renderEntry, 1000);
+
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>

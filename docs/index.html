@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#1f2937">
+<link rel="icon" href="icon.svg">
+<title>Mont Trouble · Résultats</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb; --accent: #16a34a;
+    --on: #2563eb; --rest: #6b7280; --dnf: #dc2626; --done: #16a34a; --warn: #b45309;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --on: #60a5fa; --rest: #9ca3af; --dnf: #f87171; --done: #4ade80; --warn: #fbbf24; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, -apple-system, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 16px; }
+  h1 { font-size: 22px; margin: 0; }
+  .sub { color: var(--muted); font-size: 14px; margin: 2px 0 12px; }
+  .sub a { color: inherit; }
+  .clock { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; margin-bottom: 12px; }
+  .clock div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .clock b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
+  .clock span { color: var(--muted); font-size: 13px; }
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tools input, .tools select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
+  .tools input { flex: 1; min-width: 160px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
+  th, td { padding: 9px 8px; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
+  th { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; }
+  td.num, th.num { text-align: right; }
+  tr.runner { cursor: pointer; }
+  tr.runner:hover { background: color-mix(in srgb, var(--line) 40%, transparent); }
+  .rank { font-weight: 700; width: 2.5em; }
+  .loops { font-weight: 800; font-size: 17px; }
+  .bibc { color: var(--muted); width: 3em; }
+  .st { font-size: 13px; font-weight: 600; white-space: nowrap; }
+  .st.on_course { color: var(--on); } .st.resting { color: var(--rest); } .st.dnf { color: var(--dnf); } .st.done { color: var(--done); }
+  tr.detail td { background: var(--bg); padding: 10px 12px 14px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px 12px; margin-bottom: 8px; }
+  .stats span { color: var(--muted); font-size: 12px; display: block; }
+  .laps { display: flex; flex-wrap: wrap; gap: 6px; }
+  .laps div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  .laps div.invalid { opacity: .5; text-decoration: line-through; }
+  .laps div.best { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .empty { padding: 24px; text-align: center; color: var(--muted); }
+  .err { color: var(--dnf); }
+  @media (max-width: 560px) {
+    .hide-sm { display: none; }
+    th, td { padding: 8px 5px; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Conquête du Mont Trouble · 6 h</h1>
+  <p class="sub">Boucle de 2,4 km · 177 m D+<span id="gpx-wrap" hidden> · <a href="#" id="gpx-link">Télécharger le GPX</a></span> <span id="updated"></span></p>
+
+  <div class="clock">
+    <div><span>Heure</span><b id="now">—</b></div>
+    <div><span id="cut-label">Dernier départ (14:59:59)</span><b id="cut">—</b></div>
+    <div><span>En boucle / repos</span><b id="counts">—</b></div>
+  </div>
+
+  <div class="tools">
+    <input id="q" type="search" placeholder="Nom ou dossard" autocomplete="off">
+    <select id="sex" hidden><option value="">Tous</option></select>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th class="rank">#</th><th class="bibc">Dos.</th><th>Nom</th><th class="num">Boucles</th>
+      <th>Statut</th><th class="num hide-sm">Dernière</th><th class="num hide-sm">Meilleure</th>
+    </tr></thead>
+    <tbody id="rows"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
+  </table>
+</main>
+
+<script type="module">
+import { RACE, STATUS_LABEL, computeStandings, fmtClock, fmtDuration } from './js/race.js';
+import { fetchData } from './js/api.js';
+
+// Official GPX link from the race website (leave empty to hide).
+const GPX_URL = '';
+
+const $ = (id) => document.getElementById(id);
+let data = null;
+let lastOk = null;
+let error = null;
+const open = new Set();
+
+if (GPX_URL) { $('gpx-link').href = GPX_URL; $('gpx-wrap').hidden = false; }
+
+async function load() {
+  try {
+    data = await fetchData();
+    lastOk = Date.now();
+    error = null;
+    setupSexFilter();
+  } catch (err) {
+    error = err.message;
+  }
+  render();
+}
+
+function setupSexFilter() {
+  const values = [...new Set(data.participants.map((p) => p.sex).filter(Boolean))].sort();
+  const sel = $('sex');
+  if (!values.length || sel.options.length > 1) return;
+  for (const v of values) sel.add(new Option(v, v));
+  sel.hidden = false;
+}
+
+function render() {
+  tick();
+  $('updated').innerHTML = error
+    ? `· <span class="err">Erreur de mise à jour (${esc(error)})</span>`
+    : lastOk ? `· Mis à jour à ${fmtClock(lastOk)}` : '';
+  if (!data) return;
+
+  const now = Date.now();
+  const { rows } = computeStandings(data.participants, data.events, now);
+  const on = rows.filter((r) => r.status === 'on_course').length;
+  const rest = rows.filter((r) => r.status === 'resting').length;
+  $('counts').textContent = now < RACE.start ? '—' : `${on} / ${rest}`;
+
+  const q = $('q').value.trim().toLowerCase();
+  const sex = $('sex').value;
+  const shown = rows.filter((r) =>
+    (!sex || r.sex === sex) &&
+    (!q || String(r.bib) === q || r.name.toLowerCase().includes(q))
+  );
+
+  const tbody = $('rows');
+  if (!shown.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="empty">Aucun coureur</td></tr>';
+    return;
+  }
+  tbody.innerHTML = shown.map((r) => {
+    const last = r.laps.filter((l) => l.valid).at(-1);
+    const st = r.status === 'on_course' && r.open
+      ? `${STATUS_LABEL[r.status]} <span style="font-weight:400">${fmtDuration(now - r.open.ts)}</span>`
+      : STATUS_LABEL[r.status];
+    const row = `<tr class="runner" data-bib="${r.bib}">
+      <td class="rank">${r.rank}</td><td class="bibc">${r.bib}</td><td>${esc(r.name)}</td>
+      <td class="num loops">${r.loops}</td><td class="st ${r.status}">${st}</td>
+      <td class="num hide-sm">${last ? fmtDuration(last.ms) : '—'}</td>
+      <td class="num hide-sm">${fmtDuration(r.stats.best)}</td></tr>`;
+    return open.has(r.bib) ? row + detail(r) : row;
+  }).join('');
+}
+
+function detail(r) {
+  const s = r.stats;
+  const laps = r.laps.map((l, i) => {
+    const cls = !l.valid ? 'invalid' : l.ms === s.best ? 'best' : '';
+    return `<div class="${cls}" title="${fmtClock(l.dep)} → ${fmtClock(l.arr)}${l.reason ? ' · ' + l.reason : ''}">${i + 1}. ${fmtDuration(l.ms)}</div>`;
+  }).join('');
+  return `<tr class="detail"><td colspan="7">
+    <div class="stats">
+      <div><span>Distance</span>${s.km} km</div>
+      <div><span>D+</span>${s.dplus} m</div>
+      <div><span>Moyenne</span>${fmtDuration(s.mean)}</div>
+      <div><span>Médiane</span>${fmtDuration(s.median)}</div>
+      <div><span>Meilleure</span>${fmtDuration(s.best)}</div>
+      <div><span>Plus lente</span>${fmtDuration(s.worst)}</div>
+      <div><span>Repos total</span>${fmtDuration(s.restMs)}</div>
+      <div><span>Dernière arrivée</span>${fmtClock(r.lastArrival)}</div>
+    </div>
+    <div class="laps">${laps || '<span style="color:var(--muted)">Aucune boucle terminée</span>'}</div>
+  </td></tr>`;
+}
+
+function tick() {
+  const now = Date.now();
+  $('now').textContent = fmtClock(now);
+  let label, target;
+  if (now < RACE.start) { label = 'Départ dans'; target = RACE.start; }
+  else if (now <= RACE.lastStart) { label = 'Dernier départ (14:59:59) dans'; target = RACE.lastStart; }
+  else if (now <= RACE.end) { label = 'Fin (16:00) dans'; target = RACE.end; }
+  $('cut-label').textContent = label || 'Course terminée';
+  $('cut').textContent = target ? fmtDuration(target - now) : '🏁';
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+$('rows').addEventListener('click', (e) => {
+  const tr = e.target.closest('tr.runner');
+  if (!tr) return;
+  const bib = Number(tr.dataset.bib);
+  open.has(bib) ? open.delete(bib) : open.add(bib);
+  render();
+});
+$('q').addEventListener('input', render);
+$('sex').addEventListener('change', render);
+
+load();
+setInterval(load, 30000);
+setInterval(tick, 1000);
+</script>
+</body>
+</html>
