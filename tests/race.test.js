@@ -41,7 +41,7 @@ test('rest between loops is not counted in loop time', () => {
   eq(r.laps[1].ms, 22 * 60000);
   eq(r.stats.restMs, 10 * 60000);
   eq(r.stats.best, 20 * 60000);
-  eq(r.stats.km, 4.8);
+  eq(r.stats.km, 5);
   eq(r.stats.dplus, 354);
 });
 
@@ -215,8 +215,8 @@ test('fmtClock is HH:MM:SS in race time zone', () => {
 });
 
 test('announcer: milestones', () => {
-  eq(milestones(9), ['Demi-marathon (21,6 km)']);
-  eq(milestones(18), ['Marathon (43,2 km)']);
+  eq(milestones(9), ['Demi-marathon (22,5 km)']);
+  eq(milestones(17), ['Marathon (42,5 km)', `${(3000).toLocaleString('fr-CA')} m de D+`]);
   eq(milestones(6), [`${(1000).toLocaleString('fr-CA')} m de D+`]);
   eq(milestones(10), ['10e boucle']);
   eq(milestones(5), []);
@@ -277,7 +277,7 @@ test('announcer: upcoming milestone when leaving for that loop', () => {
     '10:40', '10:41', '11:00', '11:01', '11:20', '11:21', '11:40', '11:41'];
   const events = times.map((hm, i) => ev(1, i % 2 ? 'D' : 'A', hm));
   const v = announcerView(people, events, t('11:45'));
-  eq(v.departed[0].next, ['Demi-marathon (21,6 km)'], 'leaving for loop 9');
+  eq(v.departed[0].next, ['Demi-marathon (22,5 km)'], 'leaving for loop 9');
   // a departure after 14:59:59 cannot count, so no milestone promised
   const late = computeStandings(people, [ev(1, 'A', '14:58'), ev(1, 'D', '15:00:30')], t('15:01')).rows[0];
   eq(nextMilestones(late), []);

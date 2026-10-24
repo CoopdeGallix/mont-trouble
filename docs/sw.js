@@ -1,6 +1,6 @@
 // Offline support: serve the app from cache, refresh the cache in the background.
 // Bump VERSION when deploying so phones pick up the new files.
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = ['./', 'index.html', 'chrono.html', 'annonceur.html', 'aide.html', 'js/race.js', 'js/announcer.js', 'js/api.js', 'manifest.json', 'icon.svg'];
 
 self.addEventListener('install', (e) => {

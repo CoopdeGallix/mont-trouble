@@ -79,7 +79,7 @@ export function announcerView(participants, events, now = Date.now()) {
     let basis;
     const downs = mine.filter((l) => l.mid).map((l) => l.downMs);
     if (r.open.mid) {
-      // descent is 1.4 of the 2.4 km: ~55% of a loop before anyone has a split
+      // descent is 1.5 of the 2.5 km: ~55% of a loop before anyone has a split
       expected = r.open.mid + (median(downs) ?? fieldDown ?? fieldLap * 0.55);
       basis = 'sommet';
     } else if (r.open.virtual) {

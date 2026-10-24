@@ -7,7 +7,7 @@ export const RACE = {
   lastStart: Date.parse('2026-10-24T14:59:59-04:00'),
   end: Date.parse('2026-10-24T16:00:00-04:00'),
   minLapMs: 10 * 60 * 1000,
-  lapKm: 2.4,
+  lapKm: 2.5,
   lapDplus: 177,
   summitKm: 1.0,
   // Show climb/descent only while the summit station is entering times.

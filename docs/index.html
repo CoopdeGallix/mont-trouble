@@ -10,6 +10,7 @@
   :root {
     --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb; --accent: #7c4451;
     --on: #d0602d; --rest: #6b7280; --dnf: #7c4451; --done: #d0602d; --warn: #b45309;
+    --peach: #d49785;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --accent: #d49785; --on: #d49785; --rest: #9ca3af; --dnf: #f87171; --done: #d49785; --warn: #fbbf24; }
@@ -55,6 +56,8 @@
   footer { margin: 28px 0 8px; text-align: center; font-size: 13px; }
   footer a { color: var(--muted); }
   footer .credit { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+  .notice { margin: 0 0 12px; padding: 8px 12px; border-radius: 10px; background: var(--peach); color: #262520; font-size: 13px; text-align: center; }
+  .notice a { color: inherit; }
   .empty { padding: 24px; text-align: center; color: var(--muted); }
   .err { color: var(--dnf); }
   @media (max-width: 560px) {
@@ -71,6 +74,8 @@
   <p class="tagline">6h pour faire le plus de boucles</p>
   <p class="sub">Boucle de ~2,5 km et ~177m de D+<span id="gpx-wrap" hidden><a href="#" id="gpx-link" download>Télécharger le GPX</a></span> <span id="updated"></span></p>
   </header>
+
+  <p class="notice">Chronométrage maison, fait bénévolement et pour le plaisir. Une donnée vous semble erronée? Écrivez-nous à <a href="mailto:course@coopdegallix.ca">course@coopdegallix.ca</a>.</p>
 
   <div class="clock">
     <div><span>Heure</span><b id="now">—</b></div>
