@@ -28,7 +28,7 @@ export const STATUS_LABEL = {
   resting: 'Au repos',
   done: 'Terminé',
   dnf: 'Abandon',
-  dns: 'Non partant',
+  dns: 'DNS',
 };
 
 export const PHASE_LABEL = { up: 'Montée', down: 'Descente' };

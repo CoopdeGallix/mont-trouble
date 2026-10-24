@@ -54,6 +54,7 @@
   .laps small { font-weight: 400; color: var(--muted); }
   footer { margin: 28px 0 8px; text-align: center; font-size: 13px; }
   footer a { color: var(--muted); }
+  footer .credit { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
   .empty { padding: 24px; text-align: center; color: var(--muted); }
   .err { color: var(--dnf); }
   @media (max-width: 560px) {
@@ -89,7 +90,10 @@
     </tr></thead>
     <tbody id="rows"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
   </table>
-  <footer><a href="chrono.html">Espace chronométreurs</a></footer>
+  <footer>
+    <a href="chrono.html">Espace chronométreurs</a>
+    <p class="credit">Conçu et réalisé par Samuel Guay</p>
+  </footer>
 </main>
 
 <script type="module">
