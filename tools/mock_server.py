@@ -125,10 +125,15 @@ def main():
     ap.add_argument("--pin", default="test")
     ap.add_argument("--data", type=Path, default=ROOT / "tools" / ".mock-events.json")
     ap.add_argument("--reset", action="store_true", help="start with no events")
+    ap.add_argument("--fake-sex", action="store_true", help="fill sex with femme/homme for screenshots")
     args = ap.parse_args()
     if args.reset and args.data.exists():
         args.data.unlink()
-    Handler.store = Store(args.data, load_participants())
+    people = load_participants()
+    if args.fake_sex:
+        for p in people:
+            p["sex"] = "femme" if p["bib"] % 3 else "homme"
+    Handler.store = Store(args.data, people)
     Handler.pin = args.pin
     handler = partial(Handler, directory=str(ROOT / "docs"))
     print(f"http://localhost:{args.port}/saisie.html?api=/api  (PIN {args.pin})")

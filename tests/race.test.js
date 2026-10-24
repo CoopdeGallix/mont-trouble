@@ -1,3 +1,4 @@
+import { announcerView, milestones, nextMilestones } from '../docs/js/announcer.js';
 import { RACE, STATUS, computeRunner, computeStandings, checkNewEvent, activeEvents, parseClock, fmtDuration, fmtClock } from '../docs/js/race.js';
 
 const results = [];
@@ -211,6 +212,84 @@ test('fmtDuration', () => {
 test('fmtClock is HH:MM:SS in race time zone', () => {
   eq(fmtClock(t('09:05:07')), '09:05:07');
   eq(fmtClock(t('15:00')), '15:00:00');
+});
+
+test('announcer: milestones', () => {
+  eq(milestones(9), ['Demi-marathon (21,6 km)']);
+  eq(milestones(18), ['Marathon (43,2 km)']);
+  eq(milestones(6), [`${(1000).toLocaleString('fr-CA')} m de D+`]);
+  eq(milestones(10), ['10e boucle']);
+  eq(milestones(5), []);
+});
+
+test('announcer: upcoming uses own median, then summit split', () => {
+  const people = [{ bib: 1, name: 'A', sex: 'femme' }, { bib: 2, name: 'B', sex: 'homme' }];
+  const events = [
+    ev(1, 'M', '09:08'), ev(1, 'A', '09:20'), ev(1, 'D', '09:21'), ev(1, 'M', '09:29'),
+    ev(2, 'A', '09:30'), ev(2, 'D', '09:31'),
+  ];
+  const v = announcerView(people, events, t('09:38'));
+  // bib 1: summit 09:29 + own descent 12 min = 09:41; bib 2: 09:31 + 30 min = 10:01 (outside window)
+  eq(v.upcoming.map((u) => [u.row.bib, u.expected, u.basis]), [[1, t('09:41'), 'sommet']]);
+});
+
+test('announcer: recent arrivals tagged, leaders per sex, totals', () => {
+  const people = [{ bib: 1, name: 'A', sex: 'femme' }, { bib: 2, name: 'B', sex: 'homme' }, { bib: 3, name: 'C', sex: 'femme', status: 'DNS' }];
+  const events = [ev(1, 'A', '09:30'), ev(2, 'A', '09:18'), ev(2, 'D', '09:19'), ev(2, 'A', '09:40')];
+  const v = announcerView(people, events, t('09:41'));
+  eq(v.recent.map((x) => [x.row.bib, x.lap.n]), [[2, 2], [1, 1]]);
+  eq(v.recent[1].tags, ['Meilleure boucle chez les femmes']);
+  eq(v.leaders.map((g) => [g.label, g.list.map((x) => x.row.bib)]), [['Général', [2, 1]], ['Femmes', [1]], ['Hommes', [2]]]);
+  eq(v.leaders[0].list[1].gapLoops, 1);
+  eq(v.records[0].row.bib, 2);
+  eq([v.totals.loops, v.totals.starters], [3, 2]);
+});
+
+test('announcer: lists capped during a bunch, tagged arrivals kept', () => {
+  const people = Array.from({ length: 30 }, (_, i) => ({ bib: i + 1, name: `R${i + 1}` }));
+  // everyone finishes loop 1 within 3 minutes
+  const events = people.map((p, i) => ev(p.bib, 'A', `09:2${Math.floor(i / 10)}:${String(i % 10).padStart(2, '0')}`));
+  const summits = people.map((p) => ev(p.bib, 'M', '09:08'));
+  const start = announcerView(people, summits, t('09:17'));
+  eq([start.upcoming.length, start.upcomingMore], [6, 24]);
+  eq(announcerView(people, [], t('09:17')).upcoming, [], 'loop 1 without summit: no guess');
+  const v = announcerView(people, events, t('09:24'));
+  eq([v.recent.length, v.recentMore], [8, 22]);
+  // bib 1 was first in (best loop of the day) and fell off the 8 most recent
+  eq(v.highlights.map((x) => [x.row.bib, x.tags]), [[1, ['Meilleure boucle de la journée']]]);
+});
+
+test('announcer: just left, with loop number and rest', () => {
+  const people = [{ bib: 1, name: 'A' }, { bib: 2, name: 'B' }, { bib: 3, name: 'C' }];
+  const events = [
+    ev(1, 'A', '09:20'), ev(1, 'D', '09:24'),
+    ev(2, 'A', '09:18'), ev(2, 'D', '09:19'),
+    ev(3, 'A', '09:05'), ev(3, 'D', '09:06'),
+  ];
+  const v = announcerView(people, events, t('09:25'));
+  eq(v.departed.map((x) => [x.row.bib, x.loop, x.restMs]), [[1, 2, 4 * 60000], [2, 2, 60000]]);
+});
+
+test('announcer: upcoming milestone when leaving for that loop', () => {
+  const people = [{ bib: 1, name: 'A' }];
+  // 8 loops done (A then D every 20 min), leaving for loop 9 at 11:41
+  const times = ['09:20', '09:21', '09:40', '09:41', '10:00', '10:01', '10:20', '10:21',
+    '10:40', '10:41', '11:00', '11:01', '11:20', '11:21', '11:40', '11:41'];
+  const events = times.map((hm, i) => ev(1, i % 2 ? 'D' : 'A', hm));
+  const v = announcerView(people, events, t('11:45'));
+  eq(v.departed[0].next, ['Demi-marathon (21,6 km)'], 'leaving for loop 9');
+  // a departure after 14:59:59 cannot count, so no milestone promised
+  const late = computeStandings(people, [ev(1, 'A', '14:58'), ev(1, 'D', '15:00:30')], t('15:01')).rows[0];
+  eq(nextMilestones(late), []);
+});
+
+test('announcer: last-call lists by time of day', () => {
+  const people = [{ bib: 1, name: 'A' }, { bib: 2, name: 'B' }];
+  const events = [ev(1, 'A', '14:20'), ev(2, 'A', '14:20'), ev(2, 'D', '14:58')];
+  eq(announcerView(people, events, t('14:45')).lastCall.list.map((r) => r.bib), [1]);
+  const late = announcerView(people, events, t('15:30')).lastCall;
+  eq([late.kind, late.list.map((x) => x.row.bib)], ['final_loop', [2]]);
+  eq(announcerView(people, events, t('12:00')).lastCall, null);
 });
 
 document.getElementById('out').textContent = JSON.stringify(results);

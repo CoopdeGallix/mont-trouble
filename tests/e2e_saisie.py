@@ -143,7 +143,7 @@ def main():
             page.click("#open-signup")
             expect(page.locator("#su-bib")).to_have_value("84")
             page.fill("#su-name", "Nouvelle Coureuse")
-            page.select_option("#su-sex", "F")
+            page.select_option("#su-sex", "femme")
             page.click("#su-save")
             expect(page.locator("#signup")).not_to_be_visible()
             key("8", "4")

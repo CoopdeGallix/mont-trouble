@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#536869">
+<link rel="icon" href="icon.svg">
+<title>Mont Trouble · Annonceur</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb;
+    --accent: #16a34a; --on: #2563eb; --mid: #7c3aed; --warn: #b45309; --warn-bg: #fef3c7; --bad: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --accent: #4ade80; --on: #60a5fa; --mid: #a78bfa; --warn: #fbbf24; --warn-bg: #3a2a07; --bad: #f87171; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.35 system-ui, -apple-system, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 12px 16px 32px; }
+  .top { position: sticky; top: 0; z-index: 2; background: var(--bg); padding: 6px 0 8px; border-bottom: 1px solid var(--line); }
+  .clock { display: flex; justify-content: space-between; align-items: baseline; }
+  nav { display: flex; gap: 6px; overflow-x: auto; margin-top: 8px; scrollbar-width: none; }
+  nav::-webkit-scrollbar { display: none; }
+  nav a { flex: none; padding: 6px 11px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); color: var(--fg); text-decoration: none; font-size: 14px; font-weight: 600; }
+  nav a.alert { border-color: var(--warn); color: var(--warn); }
+  h2, section { scroll-margin-top: 122px; }
+  .top b { font-size: 26px; font-variant-numeric: tabular-nums; }
+  .top span { color: var(--muted); font-size: 13px; text-align: right; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 18px 0 6px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 12px; }
+  .item { padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .item:last-child { border-bottom: 0; }
+  .line { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+  .name { font-size: 19px; font-weight: 700; }
+  .name small { font-weight: 400; color: var(--muted); font-size: 14px; }
+  .eta { font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--on); white-space: nowrap; }
+  .eta.late { color: var(--warn); font-size: 15px; }
+  .meta { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+  .tag { background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 2px 7px; font-size: 13px; font-weight: 600; }
+  .tag.next { background: color-mix(in srgb, var(--on) 15%, transparent); color: var(--on); }
+  .tag.best { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+  .empty { color: var(--muted); padding: 10px 0; }
+  .lead { display: grid; grid-template-columns: 1.6em 1fr auto; gap: 8px; padding: 6px 0; align-items: baseline; }
+  .lead .p { font-weight: 800; }
+  .lead .g { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; text-align: right; }
+  .lead-title { font-weight: 700; margin-top: 8px; }
+  .totals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .totals div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .totals b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+  .totals span { color: var(--muted); font-size: 13px; }
+  .alert { border-color: var(--warn); }
+  .risk { color: var(--bad); font-weight: 700; }
+  .err { color: var(--bad); }
+</style>
+</head>
+<body>
+<main>
+  <div class="top">
+    <div class="clock"><b id="now">—</b><span id="sub">Chargement…</span></div>
+    <nav>
+      <a href="#last-call-wrap" id="nav-last" class="alert" hidden>Fin de course</a>
+      <a href="#s-upcoming">À venir</a>
+      <a href="#s-recent">Arrivées</a>
+      <a href="#s-departed">Départs</a>
+      <a href="#highlights-wrap" id="nav-highlights" hidden>À souligner</a>
+      <a href="#s-leaders">En tête</a>
+      <a href="#s-records">Records</a>
+      <a href="#s-totals">Totaux</a>
+    </nav>
+  </div>
+
+  <section id="last-call-wrap" hidden>
+    <h2 id="last-call-title"></h2>
+    <div class="card alert" id="last-call"></div>
+  </section>
+
+  <h2 id="s-upcoming">À venir · prochaines minutes</h2>
+  <div class="card" id="upcoming"></div>
+
+  <h2 id="s-recent">Viennent d'arriver</h2>
+  <div class="card" id="recent"></div>
+
+  <h2 id="s-departed">Viennent de repartir</h2>
+  <div class="card" id="departed"></div>
+
+  <section id="highlights-wrap" hidden>
+    <h2>À souligner · 15 dernières minutes</h2>
+    <div class="card" id="highlights"></div>
+  </section>
+
+  <h2 id="s-leaders">En tête</h2>
+  <div class="card" id="leaders"></div>
+
+  <h2 id="s-records">Records du jour</h2>
+  <div class="card" id="records"></div>
+
+  <h2 id="s-totals">Tous ensemble</h2>
+  <div class="totals" id="totals"></div>
+</main>
+
+<script type="module">
+import { RACE, fmtClock, fmtDuration } from './js/race.js';
+import { announcerView, sexLabel } from './js/announcer.js';
+import { fetchData } from './js/api.js';
+
+const $ = (id) => document.getElementById(id);
+let data = null;
+let lastOk = null;
+let error = null;
+
+async function load() {
+  try {
+    data = await fetchData();
+    lastOk = Date.now();
+    error = null;
+  } catch (err) {
+    error = err.message;
+  }
+  render();
+}
+
+const who = (r) => `${esc(r.name)} <small>#${r.bib}${r.sex ? ' · ' + esc(sexLabel(r.sex).slice(0, 1)) : ''}</small>`;
+const empty = (msg) => `<div class="empty">${msg}</div>`;
+const num = (n) => n.toLocaleString('fr-CA');
+const nextTags = (list) => (list.length ? `<div class="tags">${list.map((t) => `<span class="tag next">🎯 ${esc(t)} à l'arrivée</span>`).join('')}</div>` : '');
+
+// Keep the phone awake while the page is open. Some browsers need a tap
+// first, and the lock is dropped whenever the page is hidden.
+let wakeLock = null;
+let wakeState = 'wakeLock' in navigator ? 'off' : 'unsupported';
+async function keepAwake() {
+  if (wakeState === 'unsupported' || wakeLock || document.visibilityState !== 'visible') return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+    wakeState = 'on';
+    wakeLock.addEventListener('release', () => { wakeLock = null; wakeState = 'off'; render(); });
+  } catch {
+    wakeState = 'off';
+  }
+  render();
+}
+document.addEventListener('visibilitychange', keepAwake);
+document.addEventListener('click', keepAwake);
+keepAwake();
+
+function wakeLabel() {
+  if (wakeState === 'on') return '🔆 écran allumé';
+  if (wakeState === 'off') return '<span class="err">Touche l\'écran pour le garder allumé</span>';
+  return '<span class="err">Garde l\'écran allumé dans les réglages</span>';
+}
+
+function render() {
+  const now = Date.now();
+  $('now').textContent = fmtClock(now);
+  let countdown = '';
+  if (now < RACE.start) countdown = `Départ dans ${fmtDuration(RACE.start - now)}`;
+  else if (now <= RACE.lastStart) countdown = `Dernier départ dans ${fmtDuration(RACE.lastStart - now)}`;
+  else if (now <= RACE.end) countdown = `Fin dans ${fmtDuration(RACE.end - now)}`;
+  else countdown = 'Course terminée';
+  $('sub').innerHTML = `${countdown}<br>${error ? `<span class="err">Erreur réseau</span>` : lastOk ? `données ${fmtClock(lastOk)}` : ''}<br>${wakeLabel()}`;
+  if (!data) return;
+
+  const v = announcerView(data.participants, data.events, now);
+
+  // clock moments
+  const lc = v.lastCall;
+  $('last-call-wrap').hidden = !lc || !lc.list.length;
+  $('nav-last').hidden = $('last-call-wrap').hidden;
+  if (lc && lc.kind === 'can_start') {
+    $('last-call-title').textContent = `Peuvent encore repartir avant 14:59:59 (${lc.list.length})`;
+    $('last-call').innerHTML = lc.list.map((r) => `<div class="item line"><span class="name">${who(r)}</span><span class="meta" style="white-space:nowrap">${r.loops} b. · rang ${r.rank ?? '—'}</span></div>`).join('');
+  } else if (lc && lc.kind === 'final_loop') {
+    $('last-call-title').textContent = `Dernière boucle en cours (${lc.list.length})`;
+    $('last-call').innerHTML = lc.list.map((x) => `<div class="item line"><span class="name">${who(x.row)}</span><span class="meta ${x.atRisk ? 'risk' : ''}">vers ${fmtClock(x.expected).slice(0, 5)}${x.atRisk ? ' · après 16:00 ?' : ''}</span></div>`).join('');
+  }
+
+  const more = (n, what) => (n ? `<div class="empty">+ ${n} ${what}</div>` : '');
+
+  $('upcoming').innerHTML = v.upcoming.length
+    ? v.upcoming.map((u) => `<div class="item">
+        <div class="line"><span class="name">${who(u.row)}</span>
+        <span class="eta ${u.eta < 0 ? 'late' : ''}">${u.eta < 0 ? 'imminent' : '~' + fmtDuration(u.eta)}</span></div>
+        <div class="meta">Boucle ${u.row.loops + 1} · rang ${u.row.rank ?? '—'}${u.basis === 'sommet' ? ` · sommet à ${fmtClock(u.row.open.mid).slice(0, 5)}` : ''}</div>
+        ${nextTags(u.next)}
+      </div>`).join('') + more(v.upcomingMore, 'autres attendus')
+    : empty('Personne attendu dans les 4 prochaines minutes');
+
+  const arrival = (x) => `<div class="item">
+        <div class="line"><span class="name">${who(x.row)}</span><span class="meta">${fmtClock(x.lap.arr).slice(0, 5)}</span></div>
+        <div class="meta">Boucle ${x.lap.n} en ${fmtDuration(x.lap.ms)}${x.lap.mid ? ` (↗ ${fmtDuration(x.lap.upMs)} ↘ ${fmtDuration(x.lap.downMs)})` : ''} · rang ${x.row.rank ?? '—'} · ${num(x.row.stats.km)} km</div>
+        ${x.tags.length ? `<div class="tags">${x.tags.map((t) => `<span class="tag ${t.startsWith('Meilleure') || t.startsWith('Record') ? 'best' : ''}">${esc(t)}</span>`).join('')}</div>` : ''}
+      </div>`;
+  $('recent').innerHTML = v.recent.length
+    ? v.recent.map(arrival).join('') + more(v.recentMore, 'autres arrivées (15 dernières min)')
+    : empty('Aucune arrivée dans les 15 dernières minutes');
+  $('departed').innerHTML = v.departed.length
+    ? v.departed.map((x) => `<div class="item">
+        <div class="line"><span class="name">${who(x.row)}</span><span class="meta">${fmtClock(x.ts).slice(0, 5)}</span></div>
+        <div class="meta">Part pour sa ${x.loop}e boucle · rang ${x.row.rank ?? '—'}${x.restMs != null ? ` · repos ${fmtDuration(x.restMs)}` : ''}</div>
+        ${nextTags(x.next)}
+      </div>`).join('') + more(v.departedMore, 'autres départs (10 dernières min)')
+    : empty('Aucun départ dans les 10 dernières minutes');
+  $('highlights-wrap').hidden = !v.highlights.length;
+  $('nav-highlights').hidden = !v.highlights.length;
+  $('highlights').innerHTML = v.highlights.map(arrival).join('');
+
+  $('leaders').innerHTML = v.leaders.some((g) => g.list.length)
+    ? v.leaders.filter((g) => g.list.length).map((g) => `<div class="lead-title">${esc(g.label)}</div>` + g.list.map((x) => `
+        <div class="lead"><span class="p">${x.place}</span><span class="name" style="font-size:17px">${who(x.row)}</span>
+        <span class="g">${x.row.loops} b.${x.place > 1 ? '<br>' + (x.gapLoops ? `−${x.gapLoops} b.` : x.gapMs != null ? `+${fmtDuration(x.gapMs)}` : '') : ''}</span></div>`).join('')).join('')
+    : empty('Pas encore de boucle terminée');
+
+  $('records').innerHTML = v.records.length
+    ? v.records.map((x) => `<div class="item line"><span><span class="meta">${x.label}</span><br><span class="name" style="font-size:17px">${who(x.row)}</span></span><span class="eta" style="color:var(--accent)">${fmtDuration(x.ms)}</span></div>`).join('')
+    : empty('—');
+
+  const t = v.totals;
+  $('totals').innerHTML = `
+    <div><b>${num(t.loops)}</b><span>boucles, donc ${num(t.loops)} montées du Mont Trouble</span></div>
+    <div><b>${num(t.km)} km</b><span>parcourus ensemble</span></div>
+    <div><b>${num(t.dplus)} m</b><span>de D+ cumulé</span></div>
+    <div><b>${t.onCourse} / ${t.resting}</b><span>en boucle / au repos (${t.starters} partants)</span></div>`;
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+}
+
+load();
+setInterval(load, 20000);
+setInterval(render, 1000);
+</script>
+</body>
+</html>
