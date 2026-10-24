@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#536869">
+<link rel="icon" href="icon.svg">
+<title>Chrono MT · Aide</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb;
+    --dep: #2563eb; --mid: #7c3aed; --arr: #16a34a; --dnf: #dc2626; --warn: #b45309; --warn-bg: #fef3c7;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --warn: #fbbf24; --warn-bg: #3a2a07; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 17px/1.5 system-ui, -apple-system, sans-serif; }
+  main { max-width: 560px; margin: 0 auto; padding: 16px 16px 40px; }
+  h1 { font-size: 24px; margin: 4px 0 2px; }
+  .sub { color: var(--muted); margin: 0 0 12px; }
+  .back { display: inline-block; margin-bottom: 8px; color: var(--dep); text-decoration: none; font-weight: 600; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 4px 16px 10px; margin-top: 12px; }
+  h2 { font-size: 18px; margin: 12px 0 4px; }
+  p, li { margin: 6px 0; }
+  ol, ul { padding-left: 22px; margin: 6px 0; }
+  .btn { display: inline-block; padding: 1px 8px; border-radius: 6px; color: #fff; font-weight: 700; font-size: 14px; }
+  .d { background: var(--dep); } .m { background: var(--mid); } .a { background: var(--arr); } .x { background: var(--dnf); }
+  .key { display: inline-block; padding: 0 7px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); font-weight: 600; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 6px; padding: 1px 6px; font-weight: 600; }
+  .big { font-weight: 700; }
+</style>
+</head>
+<body>
+<main>
+  <a class="back" href="saisie.html">← Retour à la saisie</a>
+  <h1>Guide des chronométreurs</h1>
+  <p class="sub">Conquête du Mont Trouble · 24 octobre</p>
+
+  <section>
+    <h2>1. Installer (une seule fois)</h2>
+    <ol>
+      <li>Ouvre <b>course.coopdegallix.ca</b> dans <b>Chrome</b> (Android) ou <b>Safari</b> (iPhone), puis tout en bas&nbsp;: <b>Espace chronométreurs</b>.</li>
+      <li>Ajoute-le à l'écran d'accueil&nbsp;: menu <span class="key">⋮</span> › <i>Ajouter à l'écran d'accueil</i> (Android), ou <span class="key">Partager</span> › <i>Sur l'écran d'accueil</i> (iPhone).</li>
+      <li class="big">Ensuite, ouvre toujours l'app avec l'icône, pas avec le navigateur. Tes saisies sont gardées dans l'app.</li>
+      <li>Entre ton nom (ou ton poste) et le NIP. Tu peux les changer avec <span class="key">⚙️</span>.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>2. Choisir ton poste</h2>
+    <p>En haut de l'écran&nbsp;:</p>
+    <ul>
+      <li><span class="btn d">DÉPART</span> quand un coureur part pour une boucle (après son repos).</li>
+      <li><span class="btn m">SOMMET</span> pour l'équipe au sommet.</li>
+      <li><span class="btn a">ARRIVÉE</span> quand un coureur termine une boucle.</li>
+      <li><span class="btn x">DNF</span> <b>seulement</b> quand un coureur annonce qu'il arrête. L'app demande de confirmer.</li>
+    </ul>
+    <p>Le départ de 9:00 est automatique pour tout le monde&nbsp;: on ne le saisit pas.</p>
+  </section>
+
+  <section>
+    <h2>3. Saisir un passage</h2>
+    <ol>
+      <li>Tape le dossard <b>dès que le coureur passe la ligne</b>&nbsp;: l'heure est prise au <b>premier chiffre</b>, pas au OK.</li>
+      <li>Vérifie le nom qui s'affiche, puis appuie sur <span class="key">OK</span>.</li>
+    </ol>
+    <p>Les messages en <span class="warn">jaune</span> (ex. «&nbsp;arrivée manquante&nbsp;?&nbsp;») n'empêchent pas la saisie. Enregistre quand même et continue&nbsp;: Samuel vérifiera.</p>
+    <p>Un dossard inconnu demande une confirmation. Dis oui si tu es sûr du numéro (ex. une inscription de dernière minute).</p>
+  </section>
+
+  <section>
+    <h2>4. Une erreur&nbsp;?</h2>
+    <p>Dans «&nbsp;Mes saisies&nbsp;», sous l'écran&nbsp;:</p>
+    <ul>
+      <li><b>corriger</b>&nbsp;: mauvais dossard, mauvais poste ou mauvaise heure. L'heure d'origine est gardée si tu ne la changes pas.</li>
+      <li><b>annuler</b>&nbsp;: saisie en trop (ex. double appui).</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>5. Pas de réseau&nbsp;?</h2>
+    <p>Continue normalement. En haut, «&nbsp;<b>3 en attente</b>&nbsp;» veut dire que 3 saisies sont gardées sur ton téléphone&nbsp;; elles partent toutes seules quand le réseau revient. «&nbsp;<b>✓ à jour</b>&nbsp;» veut dire que tout est envoyé.</p>
+    <p class="big">Ne désinstalle pas l'app et ne vide pas les données du navigateur pendant la course.</p>
+  </section>
+
+  <section>
+    <h2>6. Si le téléphone lâche</h2>
+    <p>Passe au papier&nbsp;: <b>dossard + heure HH:MM:SS</b> (+ départ/sommet/arrivée). Plus tard, on entre tout avec la case <b>Saisie papier</b> (en bas de l'app)&nbsp;: tape l'heure écrite, puis le dossard et OK.</p>
+  </section>
+
+  <section>
+    <h2>7. Inscriptions de dernière minute (jusqu'à 8:30)</h2>
+    <p>Bouton <span class="key">➕</span> en haut&nbsp;: dossard (le prochain libre est proposé, mets celui du dossard remis), nom complet, sexe. Il faut du réseau. Un dossard déjà pris est refusé.</p>
+  </section>
+</main>
+</body>
+</html>
