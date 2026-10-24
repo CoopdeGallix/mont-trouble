@@ -1,7 +1,7 @@
 // Talks to the Apps Script web app (or the local mock server in dev).
 
 // Paste the Apps Script web app URL here after deploying (ends with /exec).
-const DEFAULT_ENDPOINT = 'PASTE_APPS_SCRIPT_URL_HERE';
+const DEFAULT_ENDPOINT = 'https://script.google.com/macros/s/AKfycbz712XnQo5cwhmjTICGwGrnrRmEKqZYDtNH3ewQYMyVkSIVx4fnKM-PPz0KSLc8oitC/exec';
 
 // `?api=http://localhost:8765/api` overrides the endpoint (local testing).
 export function endpoint() {

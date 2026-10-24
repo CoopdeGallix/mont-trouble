@@ -56,7 +56,7 @@
 <body>
 <main>
   <h1>Conquête du Mont Trouble · 6 h</h1>
-  <p class="sub">Boucle de 2,4 km · 177 m D+<span id="gpx-wrap" hidden> · <a href="#" id="gpx-link">Télécharger le GPX</a></span> <span id="updated"></span></p>
+  <p class="sub">Boucle de ~2,5 km · 177 m D+<span id="gpx-wrap" hidden> · <a href="#" id="gpx-link" download>Télécharger le GPX</a></span> <span id="updated"></span></p>
 
   <div class="clock">
     <div><span>Heure</span><b id="now">—</b></div>
@@ -83,7 +83,7 @@ import { RACE, STATUS_LABEL, computeStandings, fmtClock, fmtDuration } from './j
 import { fetchData } from './js/api.js';
 
 // Official GPX link from the race website (leave empty to hide).
-const GPX_URL = '';
+const GPX_URL = 'conquete-du-mt-trouble.gpx';
 
 const $ = (id) => document.getElementById(id);
 let data = null;
