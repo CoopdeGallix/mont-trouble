@@ -17,7 +17,7 @@ from urllib.parse import urlparse
 from participants import load_participants
 
 ROOT = Path(__file__).resolve().parent.parent
-TYPES = {"D", "A", "DNF", "VOID"}
+TYPES = {"D", "M", "A", "DNF", "VOID"}
 
 
 class Store:

@@ -45,6 +45,7 @@
   .laps div { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; font-size: 13px; font-variant-numeric: tabular-nums; }
   .laps div.invalid { opacity: .5; text-decoration: line-through; }
   .laps div.best { border-color: var(--accent); color: var(--accent); font-weight: 700; }
+  .laps small { font-weight: 400; color: var(--muted); }
   .empty { padding: 24px; text-align: center; color: var(--muted); }
   .err { color: var(--dnf); }
   @media (max-width: 560px) {
@@ -79,7 +80,7 @@
 </main>
 
 <script type="module">
-import { RACE, STATUS_LABEL, computeStandings, fmtClock, fmtDuration } from './js/race.js';
+import { RACE, STATUS_LABEL, PHASE_LABEL, computeStandings, fmtClock, fmtDuration } from './js/race.js';
 import { fetchData } from './js/api.js';
 
 // Official GPX link from the race website (leave empty to hide).
@@ -141,7 +142,7 @@ function render() {
   tbody.innerHTML = shown.map((r) => {
     const last = r.laps.filter((l) => l.valid).at(-1);
     const st = r.status === 'on_course' && r.open
-      ? `${STATUS_LABEL[r.status]} <span style="font-weight:400">${fmtDuration(now - r.open.ts)}</span>`
+      ? `${r.phase ? (r.phase === 'up' ? '↗ ' : '↘ ') + PHASE_LABEL[r.phase] : STATUS_LABEL[r.status]} <span style="font-weight:400">${fmtDuration(now - r.open.ts)}</span>`
       : STATUS_LABEL[r.status];
     const row = `<tr class="runner" data-bib="${r.bib}">
       <td class="rank">${r.rank}</td><td class="bibc">${r.bib}</td><td>${esc(r.name)}</td>
@@ -156,7 +157,8 @@ function detail(r) {
   const s = r.stats;
   const laps = r.laps.map((l, i) => {
     const cls = !l.valid ? 'invalid' : l.ms === s.best ? 'best' : '';
-    return `<div class="${cls}" title="${fmtClock(l.dep)} → ${fmtClock(l.arr)}${l.reason ? ' · ' + l.reason : ''}">${i + 1}. ${fmtDuration(l.ms)}</div>`;
+    const split = l.mid ? ` <small>(↗ ${fmtDuration(l.upMs)} ↘ ${fmtDuration(l.downMs)})</small>` : '';
+    return `<div class="${cls}" title="${fmtClock(l.dep)} → ${fmtClock(l.arr)}${l.reason ? ' · ' + l.reason : ''}">${i + 1}. ${fmtDuration(l.ms)}${split}</div>`;
   }).join('');
   return `<tr class="detail"><td colspan="7">
     <div class="stats">
@@ -168,6 +170,7 @@ function detail(r) {
       <div><span>Plus lente</span>${fmtDuration(s.worst)}</div>
       <div><span>Repos total</span>${fmtDuration(s.restMs)}</div>
       <div><span>Dernière arrivée</span>${fmtClock(r.lastArrival)}</div>
+      ${s.bestUp != null ? `<div><span>Meilleure montée</span>${fmtDuration(s.bestUp)}</div><div><span>Meilleure descente</span>${fmtDuration(s.bestDown)}</div>` : ''}
     </div>
     <div class="laps">${laps || '<span style="color:var(--muted)">Aucune boucle terminée</span>'}</div>
   </td></tr>`;

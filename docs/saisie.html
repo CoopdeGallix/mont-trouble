@@ -11,13 +11,14 @@
 <style>
   :root {
     --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb;
-    --dep: #2563eb; --arr: #16a34a; --dnf: #dc2626; --warn: #b45309; --warn-bg: #fef3c7;
+    --dep: #2563eb; --mid: #7c3aed; --arr: #16a34a; --dnf: #dc2626; --warn: #b45309; --warn-bg: #fef3c7;
     --mode: var(--arr);
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --warn: #fbbf24; --warn-bg: #3a2a07; }
   }
   body[data-mode="D"] { --mode: var(--dep); }
+  body[data-mode="M"] { --mode: var(--mid); }
   body[data-mode="A"] { --mode: var(--arr); }
   body[data-mode="DNF"] { --mode: var(--dnf); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -29,9 +30,10 @@
   .pill.ok { color: var(--arr); } .pill.pending { color: var(--warn); } .pill.err { color: var(--dnf); }
   button { font: inherit; color: inherit; border: 0; cursor: pointer; }
   .icon-btn { background: none; font-size: 20px; padding: 4px 6px; }
-  .modes { display: grid; grid-template-columns: 1fr 1fr 0.7fr; gap: 6px; padding: 0 12px; }
-  .modes button { padding: 12px 4px; border-radius: 10px; font-weight: 700; background: var(--card); border: 2px solid var(--line); }
+  .modes { display: grid; grid-template-columns: 1fr 1fr 1fr 0.55fr; gap: 5px; padding: 0 12px; }
+  .modes button { padding: 12px 2px; border-radius: 10px; font-weight: 700; font-size: 14px; background: var(--card); border: 2px solid var(--line); }
   .modes button[data-m="D"].on { background: var(--dep); border-color: var(--dep); color: #fff; }
+  .modes button[data-m="M"].on { background: var(--mid); border-color: var(--mid); color: #fff; }
   .modes button[data-m="A"].on { background: var(--arr); border-color: var(--arr); color: #fff; }
   .modes button[data-m="DNF"].on { background: var(--dnf); border-color: var(--dnf); color: #fff; }
   .entry { margin: 10px 12px; padding: 10px 12px; background: var(--card); border-radius: 12px; border: 3px solid var(--mode); }
@@ -60,7 +62,7 @@
   .recent li:first-child { border-radius: 10px 10px 0 0; } .recent li:last-child { border-radius: 0 0 10px 10px; border-bottom: 0; }
   .recent li.voided { opacity: .45; text-decoration: line-through; }
   .tag { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 5px; color: #fff; }
-  .tag.D { background: var(--dep); } .tag.A { background: var(--arr); } .tag.DNF { background: var(--dnf); }
+  .tag.D { background: var(--dep); } .tag.M { background: var(--mid); } .tag.A { background: var(--arr); } .tag.DNF { background: var(--dnf); }
   .recent .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recent .name small { display: block; color: var(--warn); white-space: normal; }
   .recent .st { font-size: 13px; color: var(--muted); text-align: right; }
@@ -86,8 +88,9 @@
 
 <div class="modes" role="tablist">
   <button data-m="D">DÉPART</button>
+  <button data-m="M">SOMMET</button>
   <button data-m="A" class="on">ARRIVÉE</button>
-  <button data-m="DNF">ABANDON</button>
+  <button data-m="DNF">DNF</button>
 </div>
 
 <section class="entry">
@@ -224,7 +227,7 @@ function renderEntry() {
   const p = participantsByBib().get(b);
   const r = runnerFor(b);
   $('who').innerHTML = p
-    ? `${esc(p.name)} <small>· ${r.loops} boucle${r.loops > 1 ? 's' : ''} · ${STATUS_LABEL[r.status]}${r.open && !r.open.virtual ? ' depuis ' + fmtClock(r.open.ts) : ''}</small>`
+    ? `${esc(p.name)} <small>· ${r.loops} boucle${r.loops > 1 ? 's' : ''} · ${STATUS_LABEL[r.status]}${r.open && !r.open.virtual ? ' depuis ' + fmtClock(r.open.ts) : ''}${r.open && r.open.mid ? ' · sommet ' + fmtClock(r.open.mid) : ''}</small>`
     : '<small>Dossard inconnu</small>';
   for (const w of checkNewEvent(r, p, mode, ts ?? Date.now())) {
     const li = document.createElement('li');
@@ -241,13 +244,13 @@ function submit() {
   const b = Number(bib);
   const p = participantsByBib().get(b);
   if (!p && server.participants.length && !confirm(`Dossard ${b} inconnu. Enregistrer quand même ?`)) return;
-  if (mode === 'DNF' && !confirm(`Marquer ${p ? p.name : 'dossard ' + b} en ABANDON ?`)) return;
+  if (mode === 'DNF' && !confirm(`Marquer ${p ? p.name : 'dossard ' + b} en DNF (abandon) ?`)) return;
   const warnings = checkNewEvent(runnerFor(b), p, mode, ts);
   const ev = { id: newId(), bib: b, type: mode, ts, device: settings.device, source: paperOn() ? 'paper' : 'app' };
   mine.push({ ...ev, synced: false, warnings });
   outbox.push(ev);
   persist();
-  const label = { D: 'Départ', A: 'Arrivée', DNF: 'Abandon' }[mode];
+  const label = { D: 'Départ', M: 'Sommet', A: 'Arrivée', DNF: 'DNF' }[mode];
   toast(`${label} ${b} · ${fmtClock(ts)}${warnings.length ? ' ⚠' : ''}`, warnings.length > 0);
   if (navigator.vibrate) navigator.vibrate(warnings.length ? [60, 60, 60] : 40);
   bib = '';
@@ -348,7 +351,7 @@ function renderRecent() {
     const note = e.error ? `Refusé : ${e.error}` : (e.warnings || []).join(' · ');
     li.innerHTML = `
       <span>${fmtClock(e.ts)}</span>
-      <span class="tag ${e.type}">${e.type === 'DNF' ? 'AB' : e.type}</span>
+      <span class="tag ${e.type}">${{ M: 'S' }[e.type] || e.type}</span>
       <span class="name"><b>${e.bib}</b> ${p ? esc(p.name) : ''}${note ? `<small>⚠ ${esc(note)}</small>` : ''}</span>
       <span class="st">${e.synced ? '✓' : '⟳'}${e.source === 'paper' ? ' 📝' : ''}${voided.has(e.id) ? '' : `<br><button data-void="${e.id}">annuler</button>`}</span>`;
     list.appendChild(li);

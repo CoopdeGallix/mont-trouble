@@ -142,6 +142,48 @@ test('checkNewEvent warnings', () => {
   eq(checkNewEvent(fresh, p, 'A', t('08:30')), ['Avant le départ de 9:00 (test ?)']);
 });
 
+test('summit splits a loop into climb and descent', () => {
+  const r = computeRunner([ev(1, 'M', '09:08'), ev(1, 'A', '09:20'), ev(1, 'D', '09:25'), ev(1, 'A', '09:47')], NOON);
+  eq(r.loops, 2);
+  eq([r.laps[0].upMs, r.laps[0].downMs], [8 * 60000, 12 * 60000]);
+  eq(r.laps[1].mid, undefined, 'loop without summit time has no split');
+  eq([r.stats.bestUp, r.stats.bestDown], [8 * 60000, 12 * 60000]);
+  eq(r.flags, []);
+});
+
+test('summit time only counts for the loop it belongs to', () => {
+  const r = computeRunner([ev(1, 'A', '09:20'), ev(1, 'D', '09:25'), ev(1, 'M', '09:33')], NOON);
+  eq(r.open.mid, t('09:33'));
+  const next = computeRunner([ev(1, 'M', '09:08'), ev(1, 'A', '09:20'), ev(1, 'D', '09:25')], NOON);
+  eq(next.open.mid, null);
+});
+
+test('summit flags: no departure, two in one loop', () => {
+  const r = computeRunner([ev(1, 'A', '09:20'), ev(1, 'M', '09:30')], NOON);
+  eq(r.flags.map((f) => f.code), ['mid_without_departure']);
+  const d = computeRunner([ev(1, 'M', '09:08'), ev(1, 'M', '09:09')], NOON);
+  eq(d.flags.map((f) => f.code), ['double_mid']);
+  eq(d.open.mid, t('09:08'), 'first summit time kept');
+});
+
+test('phase shown only while the summit station is active', () => {
+  const people = [{ bib: 1 }, { bib: 2 }];
+  const events = [ev(1, 'M', '10:05'), ev(2, 'A', '10:00'), ev(2, 'D', '10:02')];
+  const active = computeStandings(people, events, t('10:10'));
+  eq(active.summitActive, true);
+  eq(active.rows.map((r) => [r.bib, r.phase]), [[2, 'up'], [1, 'down']]);
+  const stale = computeStandings(people, events, t('10:30'));
+  eq(stale.summitActive, false);
+  eq(stale.rows.map((r) => r.phase), [null, null]);
+});
+
+test('checkNewEvent for summit', () => {
+  const p = { bib: 1 };
+  eq(checkNewEvent(computeRunner([], NOON), p, 'M', t('09:08')), []);
+  eq(checkNewEvent(computeRunner([ev(1, 'A', '09:20')], NOON), p, 'M', t('09:30')), ['Pas en boucle (départ manquant ?)']);
+  eq(checkNewEvent(computeRunner([ev(1, 'M', '09:08')], NOON), p, 'M', t('09:09')), ['Déjà passé au sommet à 09:08:00']);
+});
+
 test('fmtDuration', () => {
   eq(fmtDuration(20 * 60000 + 5000), '20:05');
   eq(fmtDuration(3600000 + 61000), '1:01:01');

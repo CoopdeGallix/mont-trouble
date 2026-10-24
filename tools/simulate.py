@@ -19,6 +19,7 @@ EDT = timezone(timedelta(hours=-4))
 START = datetime(2026, 10, 24, 9, 0, tzinfo=EDT)
 LAST_START = datetime(2026, 10, 24, 14, 59, 59, tzinfo=EDT)
 END = datetime(2026, 10, 24, 16, 0, tzinfo=EDT)
+SUMMIT_UNTIL = datetime(2026, 10, 24, 13, 0, tzinfo=EDT)
 
 
 def ms(dt: datetime) -> int:
@@ -44,6 +45,9 @@ def fake_race(bibs: list[int], rng: random.Random) -> tuple[list[dict], dict[int
             arr = dep + timedelta(minutes=pace * rng.uniform(0.92, 1.15))
             if arr > END or arr > stop_at + timedelta(hours=1):
                 break
+            # summit crew only there until 13:00, and misses a few runners
+            if dep < SUMMIT_UNTIL and rng.random() < 0.9:
+                events.append(ev(bib, "M", dep + (arr - dep) * rng.uniform(0.42, 0.5)))
             events.append(ev(bib, "A", arr))
             if dep <= LAST_START:
                 loops += 1

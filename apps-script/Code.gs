@@ -11,7 +11,7 @@ const CHUNK = 90000; // CacheService values are limited to 100 KB
 
 const EVENT_HEADERS = ['id', 'bib', 'type', 'ts', 'ref', 'device', 'source', 'received_at', 'void', 'note'];
 const PARTICIPANT_HEADERS = ['bib', 'name', 'sex'];
-const TYPES = ['D', 'A', 'DNF', 'VOID'];
+const TYPES = ['D', 'M', 'A', 'DNF', 'VOID']; // M = summit (optional split)
 
 function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -21,8 +21,6 @@ function setup() {
   events.setFrozenRows(1);
   events.getRange('D:D').setNumberFormat('yyyy-mm-dd hh:mm:ss');
   events.getRange('H:H').setNumberFormat('yyyy-mm-dd hh:mm:ss');
-  events.getRange('I:I').insertCheckboxes();
-  events.getRange('I1').removeCheckboxes().setValue('void');
   const participants = ss.getSheetByName('participants') || ss.insertSheet('participants');
   if (participants.getLastRow() === 0) participants.appendRow(PARTICIPANT_HEADERS);
   participants.setFrozenRows(1);
@@ -49,7 +47,7 @@ function doPost(e) {
   if (!lock.tryLock(20000)) return json({ error: 'busy, retry' });
   try {
     const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('events');
-    const last = sheet.getLastRow();
+    const last = lastIdRow(sheet);
     const existing = new Set(
       last > 1 ? sheet.getRange(2, 1, last - 1, 1).getValues().map((r) => String(r[0])) : []
     );
@@ -92,6 +90,14 @@ function doPost(e) {
   } finally {
     lock.releaseLock();
   }
+}
+
+// Last row with an id. getLastRow() would count checkboxes or formatting
+// someone adds further down, and new events would land far below the data.
+function lastIdRow(sheet) {
+  const ids = sheet.getRange('A:A').getValues();
+  for (let i = ids.length - 1; i >= 0; i--) if (ids[i][0] !== '') return i + 1;
+  return 1;
 }
 
 // Late registration: append to the participants tab, refusing a bib already taken.

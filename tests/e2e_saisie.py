@@ -75,6 +75,17 @@ def main():
             key("del", "del")
             print("ok   warning for arrival without departure")
 
+            # summit mode: purple, shows the time in the runner line afterwards
+            page.click(".modes button[data-m='M']")
+            key("3", "3", "OK")
+            expect(page.locator("#recent li").first.locator(".tag")).to_have_text("S")
+            key("3", "3")
+            expect(page.locator("#who")).to_contain_text("sommet")
+            expect(page.locator("#warns li")).to_contain_text(["Déjà passé au sommet"])
+            key("del", "del")
+            page.click(".modes button[data-m='A']")
+            print("ok   summit entry")
+
             # outage: entries queue up, survive a reload, then sync
             outage()
             key("1", "7", "OK")
@@ -86,7 +97,7 @@ def main():
             print("ok   queued while offline, kept after reload")
             outage()
             expect(page.locator("#sync")).to_have_text("✓ à jour", timeout=15000)
-            assert len(server_events()) == 3
+            assert len(server_events()) == 4
             print("ok   queue flushed when back online")
 
             # undo the last entry -> VOID event sent

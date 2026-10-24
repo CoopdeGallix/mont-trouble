@@ -9,6 +9,9 @@ export const RACE = {
   minLapMs: 10 * 60 * 1000,
   lapKm: 2.4,
   lapDplus: 177,
+  summitKm: 1.0,
+  // Show climb/descent only while the summit station is entering times.
+  summitActiveMs: 20 * 60 * 1000,
   timeZone: 'America/Toronto',
 };
 
@@ -25,6 +28,8 @@ export const STATUS_LABEL = {
   done: 'Terminé',
   dnf: 'Abandon',
 };
+
+export const PHASE_LABEL = { up: 'Montée', down: 'Descente' };
 
 // Drop voided events (VOID events reference the id they cancel, or the row
 // was marked void in the Sheet) and duplicate ids.
@@ -53,12 +58,13 @@ export function groupByBib(events) {
 }
 
 // Pair departures and arrivals for one runner. Everyone has a virtual
-// departure at the mass start.
+// departure at the mass start. Summit times (M) are optional splits.
 export function computeRunner(events, now = Date.now()) {
   const sorted = [...events].sort((a, b) => a.ts - b.ts);
   const laps = [];
   const flags = [];
   let open = { ts: RACE.start, virtual: true };
+  let openMid = null;
   let dnf = null;
 
   for (const e of sorted) {
@@ -74,17 +80,27 @@ export function computeRunner(events, now = Date.now()) {
         flags.push({ code: 'double_departure', ts: e.ts, msg: `Deux départs de suite (${fmtClock(open.ts)} et ${fmtClock(e.ts)}) : arrivée manquante ?` });
       }
       open = e;
+      openMid = null;
+    } else if (e.type === 'M') {
+      if (!open) {
+        flags.push({ code: 'mid_without_departure', ts: e.ts, msg: `Sommet à ${fmtClock(e.ts)} sans départ : départ manquant ?` });
+      } else if (openMid) {
+        flags.push({ code: 'double_mid', ts: e.ts, msg: `Deux passages au sommet dans la même boucle (${fmtClock(openMid)} et ${fmtClock(e.ts)})` });
+      } else {
+        openMid = e.ts;
+      }
     } else if (e.type === 'A') {
       if (!open) {
         flags.push({ code: 'arrival_without_departure', ts: e.ts, msg: `Arrivée à ${fmtClock(e.ts)} sans départ : départ manquant ?` });
         continue;
       }
-      const lap = makeLap(open.ts, e.ts);
+      const lap = makeLap(open.ts, e.ts, openMid);
       if (lap.ms < RACE.minLapMs) {
         flags.push({ code: 'short_lap', ts: e.ts, msg: `Boucle de ${fmtDuration(lap.ms)} (< 10 min) à vérifier` });
       }
       laps.push(lap);
       open = null;
+      openMid = null;
     }
   }
 
@@ -103,6 +119,8 @@ export function computeRunner(events, now = Date.now()) {
   }
 
   const durations = valid.map((l) => l.ms);
+  const ups = valid.filter((l) => l.mid).map((l) => l.upMs);
+  const downs = valid.filter((l) => l.mid).map((l) => l.downMs);
   let restMs = 0;
   for (let i = 0; i < laps.length - 1; i++) restMs += Math.max(0, laps[i + 1].dep - laps[i].arr);
   if (open && !open.virtual && laps.length) restMs += Math.max(0, open.ts - laps[laps.length - 1].arr);
@@ -111,7 +129,7 @@ export function computeRunner(events, now = Date.now()) {
     laps,
     loops: valid.length,
     lastArrival: valid.length ? valid[valid.length - 1].arr : null,
-    open: open ? { ts: open.ts, virtual: !!open.virtual } : null,
+    open: open ? { ts: open.ts, virtual: !!open.virtual, mid: openMid } : null,
     status,
     dnf: dnf ? dnf.ts : null,
     flags,
@@ -123,12 +141,15 @@ export function computeRunner(events, now = Date.now()) {
       mean: durations.length ? durations.reduce((a, b) => a + b, 0) / durations.length : null,
       median: median(durations),
       restMs,
+      bestUp: ups.length ? Math.min(...ups) : null,
+      bestDown: downs.length ? Math.min(...downs) : null,
     },
   };
 }
 
-function makeLap(dep, arr) {
+function makeLap(dep, arr, mid) {
   const lap = { dep, arr, ms: arr - dep, valid: true, reason: null };
+  if (mid) Object.assign(lap, { mid, upMs: mid - dep, downMs: arr - mid });
   if (dep > RACE.lastStart) {
     lap.valid = false;
     lap.reason = 'Départ après 14:59:59';
@@ -147,6 +168,12 @@ export function computeStandings(participants, events, now = Date.now()) {
     bib: Number(p.bib),
     ...computeRunner(byBib.get(Number(p.bib)) || [], now),
   }));
+  const summitActive = activeEvents(events).some(
+    (e) => e.type === 'M' && e.ts <= now && now - e.ts < RACE.summitActiveMs
+  );
+  for (const r of rows) {
+    r.phase = summitActive && r.status === STATUS.ON_COURSE && r.open ? (r.open.mid ? 'down' : 'up') : null;
+  }
   const known = new Set(rows.map((r) => r.bib));
   const unknownBibs = [...byBib.keys()].filter((b) => !known.has(b));
 
@@ -160,7 +187,7 @@ export function computeStandings(participants, events, now = Date.now()) {
     const prev = rows[i - 1];
     r.rank = prev && prev.loops === r.loops && prev.lastArrival === r.lastArrival ? prev.rank : i + 1;
   });
-  return { rows, unknownBibs };
+  return { rows, unknownBibs, summitActive };
 }
 
 // Warnings to show the timer before/after recording a new event for a bib.
@@ -178,6 +205,9 @@ export function checkNewEvent(runner, participant, type, ts) {
     if (!runner.open) w.push('Aucun départ ouvert (départ manquant ?)');
     else if (ts >= RACE.start && ts - runner.open.ts < RACE.minLapMs) w.push(`Boucle de ${fmtDuration(ts - runner.open.ts)} (< 10 min)`);
     if (ts > RACE.end) w.push('Après 16:00 : cette boucle ne comptera pas');
+  } else if (type === 'M') {
+    if (!runner.open) w.push('Pas en boucle (départ manquant ?)');
+    else if (runner.open.mid) w.push(`Déjà passé au sommet à ${fmtClock(runner.open.mid)}`);
   } else if (type === 'DNF') {
     if (runner.dnf) w.push('Déjà marqué abandon');
   }
