@@ -2,7 +2,7 @@
 
 Serves docs/ as static files and the same API as Code.gs at /api:
     uv run tools/mock_server.py
-    open http://localhost:8765/saisie.html?api=/api   (PIN: test)
+    open http://localhost:8765/chrono.html?api=/api   (PIN: test)
 """
 
 import argparse
@@ -136,7 +136,7 @@ def main():
     Handler.store = Store(args.data, people)
     Handler.pin = args.pin
     handler = partial(Handler, directory=str(ROOT / "docs"))
-    print(f"http://localhost:{args.port}/saisie.html?api=/api  (PIN {args.pin})")
+    print(f"http://localhost:{args.port}/chrono.html?api=/api  (PIN {args.pin})")
     print(f"http://localhost:{args.port}/index.html?api=/api")
     ThreadingHTTPServer(("", args.port), handler).serve_forever()
 

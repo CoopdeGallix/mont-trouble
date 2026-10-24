@@ -1,7 +1,7 @@
 {
   "name": "Chrono Mont Trouble",
   "short_name": "Chrono MT",
-  "start_url": "saisie.html",
+  "start_url": "chrono.html",
   "scope": "./",
   "display": "standalone",
   "background_color": "#536869",

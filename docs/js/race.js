@@ -1,5 +1,5 @@
 // Shared race logic: turns raw timing events into loops, statuses and standings.
-// Used by both the entry app (saisie.html) and the public page (index.html).
+// Used by both the entry app (chrono.html) and the public page (index.html).
 
 // Oct 24, 2026 is still daylight time in Québec (EDT, UTC-4).
 export const RACE = {

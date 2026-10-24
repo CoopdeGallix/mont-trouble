@@ -1,6 +1,6 @@
 """End-to-end test of the entry app against the mock server.
 
-    uv run tests/e2e_saisie.py
+    uv run tests/e2e_chrono.py
 """
 
 import json
@@ -43,7 +43,7 @@ def main():
             ctx = browser.new_context(viewport={"width": 390, "height": 844}, has_touch=True)
             page = ctx.new_page()
             page.on("dialog", lambda d: d.accept())
-            page.goto(f"{BASE}/saisie.html?api=/api")
+            page.goto(f"{BASE}/chrono.html?api=/api")
 
             def key(*keys):
                 special = {"OK": "#keypad .ok", "del": "#keypad [data-k=del]"}
@@ -167,7 +167,7 @@ def main():
             page.click("#su-save")
             expect(page.locator("#recent li", has_text="999")).to_contain_text("Inscrit Tardif")
             print("ok   earlier times attach to late registrant")
-            page.screenshot(path=str(shots / "saisie-entries.png"), full_page=True)
+            page.screenshot(path=str(shots / "chrono-entries.png"), full_page=True)
 
             # the app shell loads with no network once cached by the service worker
             page.wait_for_function("navigator.serviceWorker.controller !== null", timeout=10000)
