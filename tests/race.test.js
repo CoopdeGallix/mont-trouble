@@ -184,6 +184,24 @@ test('checkNewEvent for summit', () => {
   eq(checkNewEvent(computeRunner([ev(1, 'M', '09:08')], NOON), p, 'M', t('09:09')), ['Déjà passé au sommet à 09:08:00']);
 });
 
+test('DNS from the sheet: status, no rank, sorted after zero-loop starters', () => {
+  const people = [{ bib: 1, status: 'DNS' }, { bib: 2 }, { bib: 3, status: 'dns' }, { bib: 4 }];
+  const { rows } = computeStandings(people, [ev(4, 'A', '09:20')], NOON);
+  eq(rows.map((r) => [r.bib, r.rank, r.status]), [
+    [4, 1, STATUS.RESTING], [2, 2, STATUS.ON_COURSE], [1, null, STATUS.DNS], [3, null, STATUS.DNS],
+  ]);
+});
+
+test('DNS with times entered: times win, mismatch flagged', () => {
+  const { rows } = computeStandings([{ bib: 1, status: 'DNS' }], [ev(1, 'A', '09:20')], NOON);
+  eq([rows[0].status, rows[0].loops, rows[0].rank], [STATUS.RESTING, 1, 1]);
+  eq(rows[0].flags.map((f) => f.code), ['dns_with_events']);
+});
+
+test('checkNewEvent warns for a DNS bib', () => {
+  eq(checkNewEvent(computeRunner([], NOON), { bib: 1, status: 'DNS' }, 'A', t('09:20')), ['Marqué non partant (DNS) dans la feuille']);
+});
+
 test('fmtDuration', () => {
   eq(fmtDuration(20 * 60000 + 5000), '20:05');
   eq(fmtDuration(3600000 + 61000), '1:01:01');

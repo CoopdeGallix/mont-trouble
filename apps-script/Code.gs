@@ -10,7 +10,7 @@ const CACHE_SECONDS = 15;
 const CHUNK = 90000; // CacheService values are limited to 100 KB
 
 const EVENT_HEADERS = ['id', 'bib', 'type', 'ts', 'ref', 'device', 'source', 'received_at', 'void', 'note'];
-const PARTICIPANT_HEADERS = ['bib', 'name', 'sex'];
+const PARTICIPANT_HEADERS = ['bib', 'name', 'sex', 'status']; // status: DNS for non-starters
 const TYPES = ['D', 'M', 'A', 'DNF', 'VOID']; // M = summit (optional split)
 
 function setup() {
@@ -155,7 +155,12 @@ function readData() {
   const pRows = ss.getSheetByName('participants').getDataRange().getValues().slice(1);
   const participants = pRows
     .filter((r) => r[0] !== '' && r[0] != null)
-    .map((r) => ({ bib: Number(r[0]), name: String(r[1] || '').trim(), sex: String(r[2] || '').trim() }));
+    .map((r) => ({
+      bib: Number(r[0]),
+      name: String(r[1] || '').trim(),
+      sex: String(r[2] || '').trim(),
+      status: String(r[3] || '').trim().toUpperCase(),
+    }));
 
   const range = ss.getSheetByName('events').getDataRange();
   const eRows = range.getValues().slice(1);

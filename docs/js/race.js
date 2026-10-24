@@ -20,6 +20,7 @@ export const STATUS = {
   RESTING: 'resting',
   DONE: 'done',
   DNF: 'dnf',
+  DNS: 'dns',
 };
 
 export const STATUS_LABEL = {
@@ -27,6 +28,7 @@ export const STATUS_LABEL = {
   resting: 'Au repos',
   done: 'Terminé',
   dnf: 'Abandon',
+  dns: 'Non partant',
 };
 
 export const PHASE_LABEL = { up: 'Montée', down: 'Descente' };
@@ -130,6 +132,7 @@ export function computeRunner(events, now = Date.now()) {
     loops: valid.length,
     lastArrival: valid.length ? valid[valid.length - 1].arr : null,
     open: open ? { ts: open.ts, virtual: !!open.virtual, mid: openMid } : null,
+    eventCount: sorted.length,
     status,
     dnf: dnf ? dnf.ts : null,
     flags,
@@ -145,6 +148,18 @@ export function computeRunner(events, now = Date.now()) {
       bestDown: downs.length ? Math.min(...downs) : null,
     },
   };
+}
+
+// "DNS" in the participants sheet marks a non-starter. If times were entered
+// for them anyway, the times win and the mismatch is flagged.
+export function applyParticipantStatus(runner, participant) {
+  if (!participant || String(participant.status || '').toUpperCase() !== 'DNS') return runner;
+  if (runner.eventCount) {
+    runner.flags.push({ code: 'dns_with_events', ts: null, msg: 'Marqué DNS dans la feuille mais a des temps' });
+  } else {
+    runner.status = STATUS.DNS;
+  }
+  return runner;
 }
 
 function makeLap(dep, arr, mid) {
@@ -166,7 +181,7 @@ export function computeStandings(participants, events, now = Date.now()) {
   const rows = participants.map((p) => ({
     ...p,
     bib: Number(p.bib),
-    ...computeRunner(byBib.get(Number(p.bib)) || [], now),
+    ...applyParticipantStatus(computeRunner(byBib.get(Number(p.bib)) || [], now), p),
   }));
   const summitActive = activeEvents(events).some(
     (e) => e.type === 'M' && e.ts <= now && now - e.ts < RACE.summitActiveMs
@@ -180,10 +195,12 @@ export function computeStandings(participants, events, now = Date.now()) {
   rows.sort(
     (a, b) =>
       b.loops - a.loops ||
+      (a.status === STATUS.DNS) - (b.status === STATUS.DNS) ||
       (a.lastArrival ?? Infinity) - (b.lastArrival ?? Infinity) ||
       a.bib - b.bib
   );
   rows.forEach((r, i) => {
+    if (r.status === STATUS.DNS) return (r.rank = null);
     const prev = rows[i - 1];
     r.rank = prev && prev.loops === r.loops && prev.lastArrival === r.lastArrival ? prev.rank : i + 1;
   });
@@ -194,6 +211,7 @@ export function computeStandings(participants, events, now = Date.now()) {
 export function checkNewEvent(runner, participant, type, ts) {
   const w = [];
   if (!participant) w.push('Dossard inconnu');
+  else if (String(participant.status || '').toUpperCase() === 'DNS') w.push('Marqué non partant (DNS) dans la feuille');
   if (ts < RACE.start) w.push('Avant le départ de 9:00 (test ?)');
   if (!runner) return w;
   if (runner.dnf && type !== 'DNF') w.push('Ce coureur a abandonné');

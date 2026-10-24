@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<meta name="theme-color" content="#1f2937">
+<meta name="theme-color" content="#536869">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon.svg">
@@ -11,14 +11,14 @@
 <style>
   :root {
     --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb;
-    --dep: #2563eb; --mid: #7c3aed; --arr: #16a34a; --dnf: #dc2626; --warn: #b45309; --warn-bg: #fef3c7;
-    --mode: var(--arr);
+    --dep: #4fa3f7; --mid: #f472b6; --peach: #d49785; --arr: #22a45d; --dnf: #dc2626; --warn: #b45309; --warn-bg: #fef3c7;
+    --mode: var(--arr); --mode-fg: #fff;
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --warn: #fbbf24; --warn-bg: #3a2a07; }
   }
-  body[data-mode="D"] { --mode: var(--dep); }
-  body[data-mode="M"] { --mode: var(--mid); }
+  body[data-mode="D"] { --mode: var(--dep); --mode-fg: #262520; }
+  body[data-mode="M"] { --mode: var(--mid); --mode-fg: #262520; }
   body[data-mode="A"] { --mode: var(--arr); }
   body[data-mode="DNF"] { --mode: var(--dnf); }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -32,8 +32,8 @@
   .icon-btn { background: none; font-size: 20px; padding: 4px 6px; }
   .modes { display: grid; grid-template-columns: 1fr 1fr 1fr 0.55fr; gap: 5px; padding: 0 12px; }
   .modes button { padding: 12px 2px; border-radius: 10px; font-weight: 700; font-size: 14px; background: var(--card); border: 2px solid var(--line); }
-  .modes button[data-m="D"].on { background: var(--dep); border-color: var(--dep); color: #fff; }
-  .modes button[data-m="M"].on { background: var(--mid); border-color: var(--mid); color: #fff; }
+  .modes button[data-m="D"].on { background: var(--dep); border-color: var(--dep); color: #262520; }
+  .modes button[data-m="M"].on { background: var(--mid); border-color: var(--mid); color: #262520; }
   .modes button[data-m="A"].on { background: var(--arr); border-color: var(--arr); color: #fff; }
   .modes button[data-m="DNF"].on { background: var(--dnf); border-color: var(--dnf); color: #fff; }
   .entry { margin: 10px 12px; padding: 10px 12px; background: var(--card); border-radius: 12px; border: 3px solid var(--mode); }
@@ -51,7 +51,7 @@
   .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; padding: 0 12px; }
   .keypad button { font-size: 28px; font-weight: 600; padding: 14px 0; border-radius: 12px; background: var(--card); border: 1px solid var(--line); }
   .keypad button:active { transform: scale(0.97); background: var(--line); }
-  .keypad .ok { background: var(--mode); color: #fff; border-color: var(--mode); }
+  .keypad .ok { background: var(--mode); color: var(--mode-fg); border-color: var(--mode); }
   .toast { position: fixed; left: 50%; top: 12px; transform: translateX(-50%); padding: 10px 16px; border-radius: 10px; background: var(--fg); color: var(--bg); font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 10; max-width: 92vw; }
   .toast.show { opacity: 1; }
   .toast.bad { background: var(--dnf); color: #fff; }
@@ -62,7 +62,7 @@
   .recent li:first-child { border-radius: 10px 10px 0 0; } .recent li:last-child { border-radius: 0 0 10px 10px; border-bottom: 0; }
   .recent li.voided { opacity: .45; text-decoration: line-through; }
   .tag { font-size: 12px; font-weight: 700; padding: 2px 6px; border-radius: 5px; color: #fff; }
-  .tag.D { background: var(--dep); } .tag.M { background: var(--mid); } .tag.A { background: var(--arr); } .tag.DNF { background: var(--dnf); }
+  .tag.D { background: var(--dep); color: #262520; } .tag.M { background: var(--mid); color: #262520; } .tag.A { background: var(--arr); } .tag.DNF { background: var(--dnf); }
   .recent .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .recent .name small { display: block; color: var(--warn); white-space: normal; }
   .recent .st { font-size: 13px; color: var(--muted); text-align: right; }
@@ -74,7 +74,7 @@
   dialog input { width: 100%; font: inherit; font-size: 18px; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
   dialog .row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
   dialog .row button { padding: 10px 16px; border-radius: 8px; background: var(--line); }
-  dialog .row button.primary { background: var(--arr); color: #fff; }
+  dialog .row button.primary { background: var(--peach); color: #262520; }
   .hint { color: var(--muted); font-size: 13px; margin: 6px 0 0; }
 </style>
 </head>
@@ -113,7 +113,7 @@
   <button data-k="del" aria-label="Effacer">⌫</button><button>0</button><button data-k="ok" class="ok">OK</button>
 </div>
 
-<h2>Mes saisies <label><input type="checkbox" id="paper-toggle"> Saisie papier</label></h2>
+<h2>Mes saisies <label><input type="checkbox" id="paper-toggle"> saisie manuelle</label></h2>
 <ul class="recent" id="recent"></ul>
 
 <div class="toast" id="toast"></div>
@@ -163,7 +163,7 @@
 </dialog>
 
 <script type="module">
-import { RACE, STATUS_LABEL, computeRunner, groupByBib, checkNewEvent, fmtClock, fmtDuration, parseClock } from './js/race.js';
+import { RACE, STATUS_LABEL, computeRunner, applyParticipantStatus, groupByBib, checkNewEvent, fmtClock, fmtDuration, parseClock } from './js/race.js';
 import { fetchData, postEvents, postParticipant } from './js/api.js';
 
 const $ = (id) => document.getElementById(id);
@@ -195,7 +195,7 @@ function allEvents() {
 
 function runnerFor(b, extra = []) {
   const byBib = groupByBib(allEvents().concat(extra));
-  return computeRunner(byBib.get(b) || []);
+  return applyParticipantStatus(computeRunner(byBib.get(b) || []), participantsByBib().get(b));
 }
 
 function newId() {

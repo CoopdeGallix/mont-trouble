@@ -3,30 +3,36 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#1f2937">
+<meta name="theme-color" content="#536869">
 <link rel="icon" href="icon.svg">
 <title>Mont Trouble · Résultats</title>
 <style>
   :root {
-    --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb; --accent: #16a34a;
-    --on: #2563eb; --rest: #6b7280; --dnf: #dc2626; --done: #16a34a; --warn: #b45309;
+    --bg: #f4f5f7; --fg: #111827; --muted: #6b7280; --card: #fff; --line: #e5e7eb; --accent: #7c4451;
+    --on: #d0602d; --rest: #6b7280; --dnf: #7c4451; --done: #d0602d; --warn: #b45309;
   }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --on: #60a5fa; --rest: #9ca3af; --dnf: #f87171; --done: #4ade80; --warn: #fbbf24; }
+    :root { --bg: #0b0f17; --fg: #f3f4f6; --muted: #9ca3af; --card: #161b26; --line: #263040; --accent: #d49785; --on: #d49785; --rest: #9ca3af; --dnf: #f87171; --done: #d49785; --warn: #fbbf24; }
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.4 system-ui, -apple-system, sans-serif; }
   main { max-width: 860px; margin: 0 auto; padding: 16px; }
   h1 { font-size: 22px; margin: 0; }
+  .top { text-align: center; margin-bottom: 14px; }
+  .top .sub { margin-bottom: 0; }
+  .logo { display: block; width: 140px; height: auto; margin: 0 auto; }
+  .tagline { font-size: 18px; font-weight: 700; margin: 8px 0 2px; }
+  @media (prefers-color-scheme: dark) { .logo { filter: invert(1); } }
   .sub { color: var(--muted); font-size: 14px; margin: 2px 0 12px; }
-  .sub a { color: inherit; }
+  .sub > span:not([hidden]) { display: block; }
+  .sub a { color: var(--on); font-weight: 700; }
   .clock { display: grid; grid-template-columns: repeat(auto-fit, minmax(105px, 1fr)); gap: 8px; margin-bottom: 12px; }
-  .clock div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+  .clock div { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
   .clock b { display: block; font-size: 20px; font-variant-numeric: tabular-nums; }
   .clock span { color: var(--muted); font-size: 13px; }
   .tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
   .tools input, .tools select { font: inherit; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--fg); }
-  .tools input { flex: 1; min-width: 160px; }
+  .tools input { flex: 1; min-width: 160px; padding-left: 36px; background: var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238b93a1' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='10.5' cy='10.5' r='6.5'/%3E%3Cpath d='M15.5 15.5 21 21'/%3E%3C/svg%3E") no-repeat 11px center / 18px; }
   table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 10px; overflow: hidden; }
   th, td { padding: 9px 8px; text-align: left; border-bottom: 1px solid var(--line); font-variant-numeric: tabular-nums; }
   th { font-size: 12px; text-transform: uppercase; letter-spacing: .4px; color: var(--muted); font-weight: 600; }
@@ -37,7 +43,7 @@
   .loops { font-weight: 800; font-size: 17px; }
   .bibc { color: var(--muted); width: 3em; }
   .st { font-size: 13px; font-weight: 600; white-space: nowrap; }
-  .st.on_course { color: var(--on); } .st.resting { color: var(--rest); } .st.dnf { color: var(--dnf); } .st.done { color: var(--done); }
+  .st.on_course { color: var(--on); } .st.resting { color: var(--rest); } .st.dnf { color: var(--dnf); } .st.done { color: var(--done); } .st.dns { color: var(--muted); font-weight: 400; }
   tr.detail td { background: var(--bg); padding: 10px 12px 14px; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 6px 12px; margin-bottom: 8px; }
   .stats span { color: var(--muted); font-size: 12px; display: block; }
@@ -46,18 +52,24 @@
   .laps div.invalid { opacity: .5; text-decoration: line-through; }
   .laps div.best { border-color: var(--accent); color: var(--accent); font-weight: 700; }
   .laps small { font-weight: 400; color: var(--muted); }
+  footer { margin: 28px 0 8px; text-align: center; font-size: 13px; }
+  footer a { color: var(--muted); }
   .empty { padding: 24px; text-align: center; color: var(--muted); }
   .err { color: var(--dnf); }
   @media (max-width: 560px) {
     .hide-sm { display: none; }
+    .logo { width: 120px; }
     th, td { padding: 8px 5px; }
   }
 </style>
 </head>
 <body>
 <main>
-  <h1>Conquête du Mont Trouble · 6 h</h1>
-  <p class="sub">Boucle de ~2,5 km · 177 m D+<span id="gpx-wrap" hidden> · <a href="#" id="gpx-link" download>Télécharger le GPX</a></span> <span id="updated"></span></p>
+  <header class="top">
+  <h1><img class="logo" src="logo.png" alt="Conquête du Mont Trouble" width="140" height="126"></h1>
+  <p class="tagline">6h pour faire le plus de boucles</p>
+  <p class="sub">Boucle de ~2,5 km et ~177m de D+<span id="gpx-wrap" hidden><a href="#" id="gpx-link" download>Télécharger le GPX</a></span> <span id="updated"></span></p>
+  </header>
 
   <div class="clock">
     <div><span>Heure</span><b id="now">—</b></div>
@@ -77,6 +89,7 @@
     </tr></thead>
     <tbody id="rows"><tr><td colspan="7" class="empty">Chargement…</td></tr></tbody>
   </table>
+  <footer><a href="saisie.html">Espace chronométreurs</a></footer>
 </main>
 
 <script type="module">
@@ -117,8 +130,8 @@ function setupSexFilter() {
 function render() {
   tick();
   $('updated').innerHTML = error
-    ? `· <span class="err">Erreur de mise à jour (${esc(error)})</span>`
-    : lastOk ? `· Mis à jour à ${fmtClock(lastOk)}` : '';
+    ? `<span class="err">Erreur de mise à jour (${esc(error)})</span>`
+    : lastOk ? `Dernière mise à jour à ${fmtClock(lastOk)}` : '';
   if (!data) return;
 
   const now = Date.now();
@@ -145,7 +158,7 @@ function render() {
       ? `${r.phase ? (r.phase === 'up' ? '↗ ' : '↘ ') + PHASE_LABEL[r.phase] : STATUS_LABEL[r.status]} <span style="font-weight:400">${fmtDuration(now - r.open.ts)}</span>`
       : STATUS_LABEL[r.status];
     const row = `<tr class="runner" data-bib="${r.bib}">
-      <td class="rank">${r.rank}</td><td class="bibc">${r.bib}</td><td>${esc(r.name)}</td>
+      <td class="rank">${r.rank ?? '—'}</td><td class="bibc">${r.bib}</td><td>${esc(r.name)}</td>
       <td class="num loops">${r.loops}</td><td class="st ${r.status}">${st}</td>
       <td class="num hide-sm">${last ? fmtDuration(last.ms) : '—'}</td>
       <td class="num hide-sm">${fmtDuration(r.stats.best)}</td></tr>`;
